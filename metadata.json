@@ -1,0 +1,6 @@
+{
+  "name": "مدرسه مجازی امام حسین (ع)",
+  "description": "پلتفرم مدرن مدرسه مجازی امام حسین (ع) تحت اشراف مدرسه عالی فقه و اصول (مینی‌اپ ایتا)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
