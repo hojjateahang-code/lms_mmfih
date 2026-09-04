@@ -1,49 +1,105 @@
 // src/pages/manager/ManagerFinance.tsx
-import React, { useState } from 'react';
-import { CreditCard, TrendingUp, ShieldCheck, FileOutput, Plus, CheckCircle2, ArrowDownLeft, ArrowUpRight, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CreditCard, TrendingUp, ShieldCheck, FileOutput, Plus, CheckCircle2, ArrowDownLeft, ArrowUpRight, Download, Loader2 } from 'lucide-react';
+import { getManagerFinanceStats, getTransactions, addTransaction, Transaction } from '../../services/financeService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ManagerFinance() {
+  const { user } = useAuth();
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
 
-  const [entries, setEntries] = useState([
-    { id: 1, title: 'خرید سرور و پهنای باند ویدیویی (هزینه)', author: 'مسئول زیرساخت - امروز', amount: '۸۵۰,۰۰۰', type: 'expense' },
-    { id: 2, title: 'واریز شهریه دوره معارف قرآنی (درآمد)', author: 'درگاه ایتا صنام - دیروز', amount: '۱,۴۵۰,۰۰۰', type: 'income' },
-    { id: 3, title: 'تسویه حق‌التدریس استاد مکارم (تسویه)', author: 'امور مالی - ۳ روز پیش', amount: '۳,۰۰۰,۰۰۰', type: 'payout' },
-    { id: 4, title: 'برگشت وجه التزام ۵ دانش‌پژوه برتر', author: 'سیستم خودکار - ۵ روز پیش', amount: '۷۵۰,۰۰۰', type: 'expense' },
-  ]);
+  const [entries, setEntries] = useState<Transaction[]>([]);
+  const [stats, setStats] = useState({ totalRevenue: 0, escrow: 0, netBalance: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const handleAddExpense = () => {
-    if (expenseTitle && expenseAmount) {
-      setEntries([
-        {
-          id: Date.now(),
-          title: `${expenseTitle} (هزینه)`,
-          author: 'توسط مدیر اجرایی - اکنون',
-          amount: parseInt(expenseAmount, 10).toLocaleString('fa-IR'),
-          type: 'expense'
-        },
-        ...entries
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      setLoading(true);
+      const [statsRes, transRes] = await Promise.all([
+        getManagerFinanceStats(user.id),
+        getTransactions(user.id)
       ]);
-      setShowExpenseModal(false);
-      setExpenseTitle('');
-      setExpenseAmount('');
-      triggerNotice('هزینه اجرایی جدید با موفقیت در دفتر کل ثبت شد.');
+      
+      if (statsRes.success && statsRes.data) {
+        setStats(statsRes.data);
+      }
+      if (transRes.success && transRes.data) {
+        setEntries(transRes.data);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, [user]);
+
+  const handleAddExpense = async () => {
+    if (expenseTitle && expenseAmount && user) {
+      const res = await addTransaction({
+        title: `${expenseTitle} (هزینه)`,
+        author: 'مدیر - اکنون',
+        amount: parseInt(expenseAmount, 10),
+        type: 'expense',
+        user_id: user.id
+      });
+
+      if (res.success && res.data) {
+        setEntries([res.data, ...entries]);
+        setShowExpenseModal(false);
+        setExpenseTitle('');
+        setExpenseAmount('');
+        triggerNotice('هزینه اجرایی جدید با موفقیت در دفتر کل ثبت شد.');
+      } else {
+        alert('خطا در ثبت هزینه');
+      }
     }
   };
 
-  const handlePayout = () => {
-    setShowPayoutModal(false);
-    triggerNotice('لیست تسویه اساتید به سیستم بانکی ایتا ارسال گردید.');
+  const handlePayout = async () => {
+    if (!user) return;
+    const res = await addTransaction({
+      title: 'تسویه‌حساب با اساتید (تسویه)',
+      author: 'امور مالی - اکنون',
+      amount: 4500000,
+      type: 'payout',
+      user_id: user.id
+    });
+    
+    if (res.success && res.data) {
+      setEntries([res.data, ...entries]);
+      setShowPayoutModal(false);
+      triggerNotice('لیست تسویه اساتید به سیستم بانکی ارسال گردید.');
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    const csvContent = "ردیف,عنوان تراکنش,نویسنده,مبلغ,نوع\n" + entries.map((e, i) => `${i + 1},${e.title},${e.author},${e.amount},${e.type}`).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "finance_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerNotice('فایل گزارش با موفقیت دانلود شد.');
   };
 
   const triggerNotice = (msg: string) => {
     setNotice(msg);
     setTimeout(() => setNotice(null), 3500);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+        <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 font-sans" dir="rtl">
@@ -54,7 +110,7 @@ export default function ManagerFinance() {
           <p className="text-[11px] text-slate-500 mt-0.5">نظارت بر درآمدها، وجه التزام و هزینه‌های اجرایی</p>
         </div>
         <button
-          onClick={() => triggerNotice('گزارش اکسل دانلود شد.')}
+          onClick={handleDownloadExcel}
           className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold flex items-center gap-1"
         >
           <Download size={15} />
@@ -79,7 +135,7 @@ export default function ManagerFinance() {
             </div>
             <p className="text-[10px] font-bold text-slate-500 mb-1">درآمد ناخالص دوره‌ها</p>
             <h3 className="text-sm font-black text-slate-800">
-              ۱۲,۴۵۰,۰۰۰ <span className="text-[10px] font-normal text-slate-400">تومان</span>
+              {stats.totalRevenue.toLocaleString('fa-IR')} <span className="text-[10px] font-normal text-slate-400">تومان</span>
             </h3>
           </div>
 
@@ -90,7 +146,7 @@ export default function ManagerFinance() {
             </div>
             <p className="text-[10px] font-bold text-slate-500 mb-1">صندوق وجه التزام</p>
             <h3 className="text-sm font-black text-slate-800">
-              ۳,۲۰۰,۰۰۰ <span className="text-[10px] font-normal text-slate-400">تومان</span>
+              {stats.escrow.toLocaleString('fa-IR')} <span className="text-[10px] font-normal text-slate-400">تومان</span>
             </h3>
           </div>
         </div>
@@ -102,7 +158,7 @@ export default function ManagerFinance() {
             <div>
               <p className="text-[11px] text-slate-400 mb-1">تراز خالص پلتفرم</p>
               <h2 className="text-xl font-black text-white">
-                ۸,۱۰۰,۰۰۰ <span className="text-xs font-normal opacity-80">تومان</span>
+                {stats.netBalance.toLocaleString('fa-IR')} <span className="text-xs font-normal opacity-80">تومان</span>
               </h2>
             </div>
             <div className="w-11 h-11 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
@@ -159,7 +215,7 @@ export default function ManagerFinance() {
 
                 <div className="text-left font-black text-xs text-slate-800 pr-2">
                   <span className={entry.type === 'income' ? 'text-emerald-600' : 'text-slate-800'}>
-                    {entry.amount}
+                    {entry.amount.toLocaleString('fa-IR')}
                   </span>{' '}
                   <span className="text-[9px] font-normal text-slate-400">تومان</span>
                 </div>

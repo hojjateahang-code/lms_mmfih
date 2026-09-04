@@ -1,0 +1,59 @@
+--- src/services/courseService.ts
++++ src/services/courseService.ts
+@@ -34,6 +34,13 @@
+ 
+ export const getPublishedCourses = async (): Promise<{ success: boolean; data?: CourseData[]; error?: string }> => {
+   try {
++    // LOCAL MOCK FALLBACK
++    if (import.meta.env.VITE_SUPABASE_URL === undefined || import.meta.env.VITE_SUPABASE_URL === '') {
++      const localCourses = JSON.parse(localStorage.getItem('mock_courses') || '[]');
++      const published = localCourses.filter((c: any) => c.is_published);
++      return { success: true, data: published };
++    }
++
+     const { data, error } = await supabase
+       .from('courses')
+       .select('*, instructor:profiles(full_name, avatar_url)')
+@@ -48,6 +55,13 @@
+ 
+ export const getManagerCourses = async (managerId: string): Promise<{ success: boolean; data?: CourseData[]; error?: string }> => {
+   try {
++    // LOCAL MOCK FALLBACK
++    if (import.meta.env.VITE_SUPABASE_URL === undefined || import.meta.env.VITE_SUPABASE_URL === '') {
++      const localCourses = JSON.parse(localStorage.getItem('mock_courses') || '[]');
++      const managerCourses = localCourses.filter((c: any) => c.instructor_id === managerId);
++      return { success: true, data: managerCourses };
++    }
++
+     const { data, error } = await supabase
+       .from('courses')
+       .select('*, instructor:profiles(full_name, avatar_url)')
+@@ -62,6 +76,14 @@
+ 
+ export const createCourse = async (courseData: any): Promise<{ success: boolean; data?: CourseData; error?: string }> => {
+   try {
++    // LOCAL MOCK FALLBACK
++    if (import.meta.env.VITE_SUPABASE_URL === undefined || import.meta.env.VITE_SUPABASE_URL === '') {
++      const localCourses = JSON.parse(localStorage.getItem('mock_courses') || '[]');
++      const newCourse = { ...courseData, id: Date.now(), created_at: new Date().toISOString(), instructor: { full_name: 'استاد تستی', avatar_url: '' } };
++      localStorage.setItem('mock_courses', JSON.stringify([newCourse, ...localCourses]));
++      return { success: true, data: newCourse };
++    }
++
+     const { data, error } = await supabase
+       .from('courses')
+       .insert([courseData])
+@@ -76,6 +98,13 @@
+ 
+ export const deleteCourse = async (courseId: number): Promise<{ success: boolean; error?: string }> => {
+   try {
++    // LOCAL MOCK FALLBACK
++    if (import.meta.env.VITE_SUPABASE_URL === undefined || import.meta.env.VITE_SUPABASE_URL === '') {
++      const localCourses = JSON.parse(localStorage.getItem('mock_courses') || '[]');
++      localStorage.setItem('mock_courses', JSON.stringify(localCourses.filter((c: any) => c.id !== courseId)));
++      return { success: true };
++    }
++
+     const { error } = await supabase
+       .from('courses')
+       .delete()

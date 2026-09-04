@@ -1,6 +1,8 @@
 // src/pages/manager/ManagerCourses.tsx
-import React, { useState } from 'react';
-import { Plus, MoreVertical, Users, Edit3, Trash2, BookOpen, Clock, CheckCircle2, ChevronLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, MoreVertical, Users, Edit3, Trash2, BookOpen, Clock, CheckCircle2, ChevronLeft, Loader2 } from 'lucide-react';
+import { getManagerCourses, deleteCourse, CourseData } from '../../services/courseService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ManagerCoursesProps {
   onCourseSelect: (id: number) => void;
@@ -8,46 +10,43 @@ interface ManagerCoursesProps {
 }
 
 export default function ManagerCourses({ onCourseSelect, onCreateCourse }: ManagerCoursesProps) {
+  const { user } = useAuth();
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [courses, setCourses] = useState<CourseData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // دیتای تستی دوره‌ها
-  const [courses, setCourses] = useState([
-    {
-      id: 1,
-      title: 'دوره تخصصی انس با معارف قرآنی',
-      students: 120,
-      status: 'فعال',
-      statusColor: 'bg-green-50 text-green-600 border-green-100',
-      image: 'bg-emerald-100 text-emerald-600',
-      episodes: 24,
-      instructor: 'استاد مکارم شیرازی'
-    },
-    {
-      id: 2,
-      title: 'سبک زندگی اسلامی و نهج‌البلاغه',
-      students: 85,
-      status: 'در حال ثبت‌نام',
-      statusColor: 'bg-blue-50 text-blue-600 border-blue-100',
-      image: 'bg-blue-100 text-blue-600',
-      episodes: 16,
-      instructor: 'دکتر محسن عباسی'
-    },
-    {
-      id: 3,
-      title: 'مقدمات منطق و فلسفه اسلامی (سطح ۱)',
-      students: 140,
-      status: 'فعال',
-      statusColor: 'bg-green-50 text-green-600 border-green-100',
-      image: 'bg-purple-100 text-purple-600',
-      episodes: 32,
-      instructor: 'حجت‌الاسلام سید محمد حسینی'
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!user) return;
+      setLoading(true);
+      const res = await getManagerCourses(user.id);
+      if (res.success && res.data) {
+        setCourses(res.data);
+      }
+      setLoading(false);
+    };
+    fetchCourses();
+  }, [user]);
+
+  const handleDeleteCourse = async (id: number) => {
+    if (confirm('آیا از حذف این دوره اطمینان دارید؟')) {
+      const res = await deleteCourse(id);
+      if (res.success) {
+        setCourses(courses.filter((c) => c.id !== id));
+      } else {
+        alert('خطا در حذف دوره');
+      }
     }
-  ]);
-
-  const handleDeleteCourse = (id: number) => {
-    setCourses(courses.filter((c) => c.id !== id));
     setActiveMenu(null);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 font-sans" dir="rtl">
@@ -55,7 +54,7 @@ export default function ManagerCourses({ onCourseSelect, onCreateCourse }: Manag
       <div className="bg-white px-4 py-5 rounded-b-3xl shadow-sm mb-5 flex justify-between items-center sticky top-0 z-20 border-b border-slate-100">
         <div>
           <h1 className="font-black text-slate-800 text-base">مدیریت دوره‌ها</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">لیست تمامی دوره‌های مدرسه مجازی</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">لیست تمامی دوره‌های شما</p>
         </div>
         <button
           onClick={onCreateCourse}
@@ -67,6 +66,11 @@ export default function ManagerCourses({ onCourseSelect, onCreateCourse }: Manag
 
       {/* Course List */}
       <div className="px-4 space-y-3.5">
+        {courses.length === 0 && (
+          <div className="text-center text-slate-500 py-10 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            شما هنوز هیچ دوره‌ای ایجاد نکرده‌اید.
+          </div>
+        )}
         {courses.map((course) => (
           <div
             key={course.id}
@@ -75,9 +79,13 @@ export default function ManagerCourses({ onCourseSelect, onCreateCourse }: Manag
             {/* Course Thumbnail */}
             <div
               onClick={() => onCourseSelect(course.id)}
-              className={`w-18 h-18 rounded-2xl flex-shrink-0 cursor-pointer ${course.image} flex items-center justify-center shadow-inner`}
+              className={`w-18 h-18 rounded-2xl flex-shrink-0 cursor-pointer bg-slate-100 text-slate-600 flex items-center justify-center shadow-inner overflow-hidden`}
             >
-              <BookOpen size={26} />
+              {course.cover_url ? (
+                <img src={course.cover_url} alt={course.title} className="w-full h-full object-cover" />
+              ) : (
+                <BookOpen size={26} />
+              )}
             </div>
 
             {/* Course Info */}
@@ -85,17 +93,15 @@ export default function ManagerCourses({ onCourseSelect, onCreateCourse }: Manag
               <h3 className="font-bold text-slate-800 text-xs mb-1 leading-snug line-clamp-1">{course.title}</h3>
               <div className="flex items-center text-[10px] text-slate-500 gap-2 mb-1.5">
                 <span className="flex items-center gap-1">
-                  <Users size={11} className="text-indigo-500" /> {course.students} دانش‌پژوه
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Clock size={11} /> {course.episodes} جلسه
+                  <Users size={11} className="text-indigo-500" /> -- دانش‌پژوه
                 </span>
               </div>
               <span
-                className={`inline-block px-2 py-0.5 text-[9px] font-black rounded-lg border ${course.statusColor}`}
+                className={`inline-block px-2 py-0.5 text-[9px] font-black rounded-lg border ${
+                  course.is_published ? 'bg-green-50 text-green-600 border-green-100' : 'bg-slate-50 text-slate-600 border-slate-100'
+                }`}
               >
-                {course.status}
+                {course.is_published ? 'منتشر شده' : 'پیش‌نویس'}
               </span>
             </div>
 
@@ -119,16 +125,7 @@ export default function ManagerCourses({ onCourseSelect, onCreateCourse }: Manag
                     }}
                     className="w-full px-3.5 py-2 text-right text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <Users size={14} className="text-blue-500" /> کاربران دوره
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveMenu(null);
-                      onCourseSelect(course.id);
-                    }}
-                    className="w-full px-3.5 py-2 text-right text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                  >
-                    <Edit3 size={14} className="text-amber-500" /> ویرایش دوره
+                    <Edit3 size={14} className="text-amber-500" /> مدیریت محتوا
                   </button>
                   <div className="h-px bg-slate-100 my-1 mx-2" />
                   <button

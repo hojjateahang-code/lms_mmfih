@@ -1,6 +1,7 @@
 // src/pages/student/StudentHome.tsx
-import React, { useState } from 'react';
-import { Search, ChevronLeft, User, Star, BookOpen, Clock, Flame, Award } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, ChevronLeft, User, Star, BookOpen, Clock, Flame, Award, Loader2 } from 'lucide-react';
+import { CourseData, getPublishedCourses } from '../../services/courseService';
 import { Course } from '../../types';
 
 interface StudentHomeProps {
@@ -11,8 +12,10 @@ interface StudentHomeProps {
 export default function StudentHome({ onSelectCourse, user }: StudentHomeProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [courses, setCourses] = useState<CourseData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // دیتای تستی برای دسته‌بندی‌ها
+  // Categories Mock for UI
   const categories = [
     { id: 1, title: 'علوم حوزوی', icon: '🕌', bgColor: 'bg-emerald-100 text-emerald-800' },
     { id: 2, title: 'انس با قرآن', icon: '📖', bgColor: 'bg-amber-100 text-amber-800' },
@@ -22,100 +25,55 @@ export default function StudentHome({ onSelectCourse, user }: StudentHomeProps) 
     { id: 6, title: 'فقه و اصول', icon: '⚖️', bgColor: 'bg-teal-100 text-teal-800' },
   ];
 
-  // دیتای تستی دوره‌ها
-  const coursesList: Course[] = [
-    {
-      id: 'c1',
-      title: 'دوره تخصصی تفسیر روان قرآن کریم',
-      instructor: 'استاد مکارم شیرازی',
-      category_id: 2,
-      category_name: 'انس با قرآن',
-      price: 350000,
-      original_price: 500000,
-      is_new: true,
-      rating: 4.9,
-      students_count: 1420,
-      episodes_count: 36,
-      duration: '۲۴ ساعت',
-      level: 'متوسط تا پیشرفته',
-      description: 'آموزش مفاهیم و تفسیر ترتیبی آیات منتخب قرآن کریم با رویکرد تربیتی و کاربردی برای زندگی امروز.',
-      banner_url: 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-      id: 'c2',
-      title: 'مقدمات منطق و فلسفه اسلامی (سطح ۱)',
-      instructor: 'حجت‌الاسلام سید محمد حسینی',
-      category_id: 1,
-      category_name: 'علوم حوزوی',
-      price: 280000,
-      original_price: 350000,
-      is_new: true,
-      rating: 4.8,
-      students_count: 890,
-      episodes_count: 24,
-      duration: '۱۸ ساعت',
-      level: 'مقدماتی',
-      description: 'بررسی اصول تفکر صحیح، مغالطات و مدخل قواعد منطق مظفر ویژه طلاب و علاقه‌مندان حوزه.',
-      banner_url: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-      id: 'c3',
-      title: 'شرح حکمت‌های منتخب نهج‌البلاغه',
-      instructor: 'دکتر محسن عباسی',
-      category_id: 3,
-      category_name: 'نهج‌البلاغه',
-      price: 0,
-      is_free: true,
-      is_new: false,
-      rating: 5.0,
-      students_count: 2300,
-      episodes_count: 15,
-      duration: '۱۰ ساعت',
-      level: 'عمومی',
-      description: 'واکاوی عمیق کلمات قصار حضرت امیرالمؤمنین علی (ع) در مدیریت زندگی شخصی و اجتماعی.',
-      banner_url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-      id: 'c4',
-      title: 'اصول فقه کاربردی - الحلقه اولی',
-      instructor: 'استاد حیدری',
-      category_id: 6,
-      category_name: 'فقه و اصول',
-      price: 420000,
-      original_price: 600000,
-      is_new: true,
-      rating: 4.7,
-      students_count: 610,
-      episodes_count: 40,
-      duration: '۳۰ ساعت',
-      level: 'پیشرفته',
-      description: 'تدریس مبانی استنباط احکام شرعی و مباحث الفاظ و ادله عقلی بر اساس مبانی شهید صدر.',
-      banner_url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-      id: 'c5',
-      title: 'مهارت‌های تربیت فرزند در کلام معصومین',
-      instructor: 'دکتر استاد رضایی',
-      category_id: 4,
-      category_name: 'سبک زندگی',
-      price: 190000,
-      original_price: 250000,
-      is_new: false,
-      rating: 4.9,
-      students_count: 1750,
-      episodes_count: 18,
-      duration: '۱۲ ساعت',
-      level: 'عمومی',
-      description: 'راهکارهای علمی و روایی برای تربیت نسل صالح در عصر تکنولوژی و شبکه‌های اجتماعی.',
-      banner_url: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=600&auto=format&fit=crop'
-    }
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      const res = await getPublishedCourses();
+      if (res.success && res.data) {
+        // Map CourseData to the existing Course interface expected by UI
+        const mappedCourses: any[] = res.data.map((c: CourseData) => ({
+          id: c.id.toString(),
+          title: c.title,
+          instructor: c.instructor?.full_name || 'استاد محترم',
+          category_id: 1, 
+          category_name: c.category || 'دسته‌بندی نشده',
+          price: c.price,
+          original_price: c.price,
+          is_new: true,
+          rating: 5.0,
+          students_count: 0,
+          episodes_count: 0,
+          duration: 'نامشخص',
+          level: 'عمومی',
+          description: c.description,
+          banner_url: c.cover_url || 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?q=80&w=600&auto=format&fit=crop',
+          is_free: c.price === 0
+        }));
+        setCourses(mappedCourses);
+      }
+      setLoading(false);
+    };
+    fetchCourses();
+  }, []);
 
-  const filteredCourses = coursesList.filter(c => {
-    const matchesCategory = selectedCategory === null || c.category_id === selectedCategory;
-    const matchesSearch = !searchQuery || c.title.includes(searchQuery) || c.instructor.includes(searchQuery) || c.category_name.includes(searchQuery);
+  const handleSelectCourse = (course: any) => {
+    if (!onSelectCourse) return;
+    onSelectCourse(course);
+  };
+
+  const filteredCourses = courses.filter(c => {
+    const matchesCategory = selectedCategory === null || (c as any).category_id === selectedCategory;
+    const matchesSearch = !searchQuery || c.title.includes(searchQuery) || (c as any).instructor.includes(searchQuery) || (c as any).category_name.includes(searchQuery);
     return matchesCategory && matchesSearch;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+        <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 font-sans dir-rtl" dir="rtl">
@@ -176,8 +134,8 @@ export default function StudentHome({ onSelectCourse, user }: StudentHomeProps) 
           <div className="relative z-10 flex justify-between items-center mt-2">
             <button
               onClick={() => {
-                const target = coursesList[0];
-                if (onSelectCourse) onSelectCourse(target);
+                const target = courses[0];
+                if (onSelectCourse) onSelectCourse(target as any);
               }}
               className="bg-white text-indigo-950 font-black text-xs px-4 py-2 rounded-2xl shadow-md hover:bg-amber-300 hover:text-indigo-950 transition-all flex items-center gap-1 active:scale-95"
             >
@@ -326,10 +284,10 @@ export default function StudentHome({ onSelectCourse, user }: StudentHomeProps) 
           </div>
 
           <div className="space-y-3">
-            {coursesList.slice(0, 3).map((course) => (
+            {courses.slice(0, 3).map((course) => (
               <div
                 key={'popular-' + course.id}
-                onClick={() => onSelectCourse?.(course)}
+                onClick={() => onSelectCourse?.(course as any)}
                 className="bg-white p-3.5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex gap-3.5 items-center cursor-pointer group"
               >
                 <img

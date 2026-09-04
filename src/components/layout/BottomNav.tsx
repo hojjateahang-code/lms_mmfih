@@ -3,7 +3,7 @@ import React from 'react';
 import { Home, Search, GraduationCap, User, Users, PlusCircle, CreditCard, BookOpen } from 'lucide-react';
 
 interface BottomNavProps {
-  role: 'student' | 'executive_manager';
+  role: 'student' | 'executive_manager' | 'teacher';
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
@@ -26,7 +26,15 @@ export default function BottomNav({ role, activeTab, setActiveTab }: BottomNavPr
     { id: 'profile', label: 'پروفایل', icon: User },
   ];
 
-  const tabs = role === 'student' ? studentTabs : managerTabs;
+  // تب‌های استاد
+  const teacherTabs = [
+    { id: 'teacher_courses', label: 'کلاس‌های من', icon: BookOpen },
+    { id: 'create_course', label: 'ایجاد دوره', icon: PlusCircle },
+    { id: 'exams', label: 'آزمون‌ها', icon: Users },
+    { id: 'profile', label: 'پروفایل', icon: User },
+  ];
+
+  const tabs = (role === 'student' || !role) ? studentTabs : (role === 'teacher' ? teacherTabs : managerTabs);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 px-2.5 pb-3.5 pt-1 pointer-events-none">

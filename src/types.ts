@@ -10,6 +10,9 @@ export interface UserProfile {
   phone?: string;
   city?: string;
   education_level?: string;
+  father_name?: string;
+  birth_date?: string;
+  job?: string;
   created_at?: string;
 }
 

@@ -1,24 +1,34 @@
 // src/pages/student/WalletScreen.tsx
 import React, { useState } from 'react';
-import { ChevronRight, Plus, ArrowDownLeft, ArrowUpRight, CheckCircle2, ShieldCheck, CreditCard } from 'lucide-react';
+import { ChevronRight, Plus, ArrowDownLeft, ArrowUpRight, CheckCircle2, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface WalletScreenProps {
   onBack: () => void;
 }
 
 export default function WalletScreen({ onBack }: WalletScreenProps) {
+  const { user } = useAuth();
   const [balance, setBalance] = useState(1500000);
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargeAmount, setChargeAmount] = useState('200000');
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [isCharging, setIsCharging] = useState(false);
 
-  const handleAddFunds = () => {
-    const num = parseInt(chargeAmount, 10) || 0;
-    if (num > 0) {
-      setBalance(balance + num);
-      setShowChargeModal(false);
-      setSuccessNotice(`کیف پول شما به مبلغ ${num.toLocaleString('fa-IR')} تومان با موفقیت شارژ شد.`);
-      setTimeout(() => setSuccessNotice(null), 3500);
+    const handleAddFunds = async () => {
+    const num = parseInt(chargeAmount);
+    if (!isNaN(num) && num > 0) {
+      setIsCharging(true);
+      // Simulate API call
+      setTimeout(() => {
+        const newBalance = balance + num;
+        setBalance(newBalance);
+        localStorage.setItem('mock_wallet_balance', newBalance.toString());
+        setIsCharging(false);
+        setShowChargeModal(false);
+        setChargeAmount('');
+        triggerNotice(`کیف پول شما با موفقیت ${num.toLocaleString('fa-IR')} تومان شارژ شد.`);
+      }, 1500);
     }
   };
 

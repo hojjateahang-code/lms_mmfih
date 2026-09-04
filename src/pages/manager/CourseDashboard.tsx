@@ -36,6 +36,12 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   const [modalType, setModalType] = useState<'lesson' | 'quiz' | 'certificate' | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // استیت‌های اتصال به دیتابیس
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [course, setCourse] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
+
   // استیت برای باز و بسته کردن منوی سه نقطه سرفصل‌ها
   const [openSessionMenu, setOpenSessionMenu] = useState<number | null>(null);
 
@@ -53,30 +59,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   const [newQuizTitle, setNewQuizTitle] = useState('');
   const [certificateTitle, setCertificateTitle] = useState('گواهی رسمی پایان دوره فقه و معارف قرآن');
 
-  // List of sessions
-  const [sessions, setSessions] = useState([
-    {
-      id: 1,
-      title: 'فصل اول: مقدمه‌ای بر تدبر و تفسیر',
-      itemsCount: 'شامل ۲ درس و ۱ آزمون',
-      items: [
-        { id: 101, type: 'video', title: 'درس اول: مفاهیم کلیدی و اهداف سوره', duration: '۲۵ دقیقه' },
-        { id: 102, type: 'video', title: 'درس دوم: شأن نزول و بسترهای تاریخی', duration: '۳۰ دقیقه' },
-        { id: 103, type: 'quiz', title: 'آزمون میان‌دوره مفاهیم فصل اول', duration: '۱۰ سوال - ۲۰ دقیقه' }
-      ]
-    },
-    {
-      id: 2,
-      title: 'فصل دوم: واژه‌شناسی و بلاغت آیات',
-      itemsCount: 'شامل ۳ درس',
-      items: [
-        { id: 201, type: 'video', title: 'درس اول: لطایف ادبی و صناعات بدیع', duration: '۳۵ دقیقه' },
-        { id: 202, type: 'video', title: 'درس دوم: اعجاز بیانی و ساختار هندسی', duration: '۴۰ دقیقه' }
-      ]
-    }
-  ]);
-
-  // Online Classes
+  // Online Classes (هنوز آفلاین/Mock)
   const [onlineClasses, setOnlineClasses] = useState([
     {
       id: 1,
@@ -84,82 +67,74 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
       date: 'پنج‌شنبه ۱۲ اسفند - ساعت ۱۸:۳۰',
       instructor: 'استاد مکارم شیرازی',
       status: 'برنامه‌ریزی شده'
-    },
-    {
-      id: 2,
-      title: 'کارگاه برخط بررسی شبهات قرآنی',
-      date: 'دوشنبه ۱۶ اسفند - ساعت ۲۰:۰۰',
-      instructor: 'حجت‌الاسلام سید محمد حسینی',
-      status: 'در انتظار تایید'
     }
   ]);
 
-  const handleAddContentItem = (type: 'video' | 'quiz' | 'certificate', title: string) => {
-    if (type === 'video') {
-      const updated = [...sessions];
-      if (updated.length > 0) {
-        updated[0].items.push({
-          id: Date.now(),
-          type: 'video',
-          title: title || 'درس جدید ضبط‌شده',
-          duration: '۳۰ دقیقه'
-        });
-      }
-      setSessions(updated);
-      setModalType(null);
-      setNewLessonTitle('');
-      triggerSuccess('درس جدید با موفقیت به سرفصل افزوده شد.');
-    } else if (type === 'quiz') {
-      const updated = [...sessions];
-      if (updated.length > 0) {
-        updated[0].items.push({
-          id: Date.now(),
-          type: 'quiz',
-          title: title || 'آزمون تستی جدید',
-          duration: '۱۵ سوال - ۳۰ دقیقه'
-        });
-      }
-      setSessions(updated);
-      setModalType(null);
-      setNewQuizTitle('');
-      triggerSuccess('آزمون جامع با موفقیت ایجاد گردید.');
-    } else if (type === 'certificate') {
-      setModalType(null);
-      triggerSuccess('تنظیمات صدور گواهی دوره با موفقیت ثبت شد.');
+  // --- Supabase Data Fetching ---
+  const fetchContent = async () => {
+    setIsLoading(true);
+    const { supabase } = await import('../../lib/supabase');
+    const { getCourseContent, getCourseDetails } = await import('../../services/courseService');
+    const courseRes = await getCourseDetails(courseId);
+    if (courseRes.success) setCourse(courseRes.data);
+    const res = await getCourseContent(courseId);
+    if (res.success && res.data) {
+      setSessions(res.data);
     }
+    setIsLoading(false);
   };
+
+  React.useEffect(() => {
+    fetchContent();
+  }, [courseId]);
 
   const triggerSuccess = (msg: string) => {
     setActionSuccess(msg);
-    setTimeout(() => {
-      setActionSuccess(null);
-    }, 3000);
+    setTimeout(() => setActionSuccess(null), 3000);
   };
 
-  const handleSaveChapterEdit = () => {
+  // --- Handlers متصل به دیتابیس ---
+  const handleSaveChapterEdit = async () => {
     if (editingChapterModal) {
-      setSessions(
-        sessions.map((s) => (s.id === editingChapterModal.id ? { ...s, title: editingChapterModal.title } : s))
-      );
-      triggerSuccess(`عنوان فصل با موفقیت به «${editingChapterModal.title}» ویرایش شد.`);
-      setEditingChapterModal(null);
+      const { updateChapter } = await import('../../services/courseService');
+      const res = await updateChapter(editingChapterModal.id, editingChapterModal.title);
+      if (res.success) {
+        triggerSuccess(`عنوان فصل با موفقیت به «${editingChapterModal.title}» ویرایش شد.`);
+        setEditingChapterModal(null);
+        fetchContent();
+      }
     }
   };
 
-  const handleCreateNewChapter = () => {
+  const handleCreateNewChapter = async () => {
     if (newChapterTitle.trim()) {
-      setSessions([
-        ...sessions,
-        {
-          id: Date.now(),
-          title: newChapterTitle.trim(),
-          itemsCount: 'شامل ۰ درس',
-          items: []
-        }
-      ]);
-      triggerSuccess(`فصل جدید «${newChapterTitle.trim()}» ایجاد گردید.`);
-      setNewChapterTitle('');
-      setShowAddChapterModal(false);
+      const { createChapter } = await import('../../services/courseService');
+      const res = await createChapter(courseId, newChapterTitle.trim(), sessions.length + 1);
+      if (res.success) {
+        triggerSuccess(`فصل جدید «${newChapterTitle.trim()}» ایجاد گردید.`);
+        setNewChapterTitle('');
+        setShowAddChapterModal(false);
+        fetchContent();
+      }
+    }
+  };
+
+  const handleDeleteChapter = async (chapterId: number, title: string) => {
+    const { deleteChapter } = await import('../../services/courseService');
+    const res = await deleteChapter(chapterId);
+    if (res.success) {
+      triggerSuccess(`فصل «${title}» حذف گردید.`);
+      setOpenSessionMenu(null);
+      fetchContent();
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId: number, title: string) => {
+    const { deleteLesson } = await import('../../services/courseService');
+    const res = await deleteLesson(lessonId);
+    if (res.success) {
+      triggerSuccess(`درس «${title}» حذف شد.`);
+      fetchContent();
     }
   };
 
@@ -270,11 +245,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                         </button>
                         <div className="h-px bg-slate-100 my-1 mx-2"></div>
                         <button
-                          onClick={() => {
-                            setOpenSessionMenu(null);
-                            setSessions(sessions.filter((s) => s.id !== session.id));
-                            triggerSuccess(`فصل «${session.title}» حذف گردید.`);
-                          }}
+                          onClick={() => handleDeleteChapter(session.id, session.title)}
                           className="w-full text-right px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-1.5"
                         >
                           <Trash2 size={14} /> حذف فصل
@@ -302,7 +273,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                       </div>
                       <div>
                         <span className="font-bold text-slate-700 block text-[11px] leading-tight">{item.title}</span>
-                        <span className="text-[9px] text-slate-400">{item.duration}</span>
+                        <span className="text-[9px] text-slate-400">{item.duration_minutes} دقیقه</span>
                       </div>
                     </div>
 
@@ -315,8 +286,8 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                             id: item.id,
                             title: item.title,
                             type: item.type,
-                            duration: item.duration,
-                            isFree: false
+                            duration: item.duration_minutes ? `${item.duration_minutes} دقیقه` : '۳۰ دقیقه',
+                            isFree: item.is_free || false
                           });
                           setModalType('lesson');
                         }}
@@ -328,14 +299,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
 
                       {/* دکمه حذف درس */}
                       <button
-                        onClick={() => {
-                          const updated = sessions.map((s) => ({
-                            ...s,
-                            items: s.items.filter((i) => i.id !== item.id)
-                          }));
-                          setSessions(updated);
-                          triggerSuccess(`درس «${item.title}» حذف شد.`);
-                        }}
+                        onClick={() => handleDeleteLesson(item.id, item.title)}
                         className="p-1.5 text-slate-400 hover:text-rose-600 bg-white hover:bg-rose-50 rounded-lg transition"
                         title="حذف درس"
                       >
@@ -349,7 +313,10 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
               {/* Action Button for this session */}
               <div className="pt-2 border-t border-slate-100">
                 <button
-                  onClick={() => setShowAddMenu(true)}
+                  onClick={() => {
+                    setActiveChapterId(session.id);
+                    setShowAddMenu(true);
+                  }}
                   className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 active:scale-98 text-indigo-600 rounded-2xl text-xs font-bold flex items-center justify-center transition gap-1"
                 >
                   <Plus size={14} /> افزودن محتوا (درس، آزمون، گواهی)
@@ -413,7 +380,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
               <label className="block text-[11px] font-bold text-slate-600 mb-1">عنوان دوره</label>
               <input
                 type="text"
-                defaultValue="دوره تخصصی انس با معارف قرآنی"
+                defaultValue={course?.title || ''}
                 className="w-full bg-slate-50 p-2.5 rounded-2xl text-xs border border-slate-200 outline-none"
               />
             </div>
@@ -590,39 +557,36 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
             setEditingLessonData(null);
           }}
           initialData={editingLessonData}
-          onSave={(lessonData) => {
+          onSave={async (lessonData) => {
+            const { createLesson, updateLesson } = await import('../../services/courseService');
+            
             if (editingLessonId) {
-              const updated = sessions.map((s) => ({
-                ...s,
-                items: s.items.map((it) =>
-                  it.id === editingLessonId
-                    ? {
-                        ...it,
-                        title: lessonData.title,
-                        type: lessonData.type || it.type,
-                        duration: lessonData.duration || it.duration
-                      }
-                    : it
-                )
-              }));
-              setSessions(updated);
-              triggerSuccess(`درس «${lessonData.title}» با موفقیت به‌روزرسانی شد.`);
-            } else {
-              const updated = [...sessions];
-              if (updated.length > 0) {
-                updated[0].items.push({
-                  id: Date.now(),
-                  type: lessonData.type || 'video',
-                  title: lessonData.title,
-                  duration: lessonData.duration || '۳۰ دقیقه'
-                });
+              const res = await updateLesson(editingLessonId, {
+                title: lessonData.title,
+                type: lessonData.type as any || 'video',
+                duration_minutes: parseInt(lessonData.duration.split(' ')[0]) || 30
+              });
+              if (res.success) {
+                triggerSuccess(`درس «${lessonData.title}» با موفقیت به‌روزرسانی شد.`);
               }
-              setSessions(updated);
-              triggerSuccess(`درس «${lessonData.title}» با موفقیت اضافه شد.`);
+            } else if (activeChapterId) {
+              const res = await createLesson({
+                chapter_id: activeChapterId,
+                title: lessonData.title,
+                type: lessonData.type as any || 'video',
+                duration_minutes: parseInt(lessonData.duration.split(' ')[0]) || 30,
+                is_free: false,
+                order_num: 0
+              });
+              if (res.success) {
+                triggerSuccess(`درس «${lessonData.title}» با موفقیت اضافه شد.`);
+              }
             }
+            
             setModalType(null);
             setEditingLessonId(null);
             setEditingLessonData(null);
+            fetchContent();
           }}
         />
       )}
@@ -631,19 +595,23 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
       {modalType === 'quiz' && (
         <AddQuizForm
           onClose={() => setModalType(null)}
-          onSave={(quizData) => {
-            const updated = [...sessions];
-            if (updated.length > 0) {
-              updated[0].items.push({
-                id: Date.now(),
-                type: 'quiz',
+          onSave={async (quizData) => {
+            if (activeChapterId) {
+              const { createLesson } = await import('../../services/courseService');
+              const res = await createLesson({
+                chapter_id: activeChapterId,
                 title: quizData.title,
-                duration: `${quizData.duration} - حدنصاب ${quizData.passScore}`
+                type: 'quiz',
+                duration_minutes: parseInt(quizData.duration) || 30,
+                is_free: false,
+                order_num: 0
               });
+              if (res.success) {
+                triggerSuccess(`آزمون «${quizData.title}» با موفقیت ثبت شد.`);
+                fetchContent();
+              }
             }
-            setSessions(updated);
             setModalType(null);
-            triggerSuccess(`آزمون «${quizData.title}» با موفقیت ثبت شد.`);
           }}
         />
       )}
@@ -652,9 +620,23 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
       {modalType === 'certificate' && (
         <AddCertificateForm
           onClose={() => setModalType(null)}
-          onSave={(certData) => {
+          onSave={async (certData) => {
+            if (activeChapterId) {
+              const { createLesson } = await import('../../services/courseService');
+              const res = await createLesson({
+                chapter_id: activeChapterId,
+                title: certData.certTitle,
+                type: 'certificate',
+                duration_minutes: 0,
+                is_free: false,
+                order_num: 0
+              });
+              if (res.success) {
+                triggerSuccess(`تنظیمات «${certData.certTitle}» با موفقیت فعال شد.`);
+                fetchContent();
+              }
+            }
             setModalType(null);
-            triggerSuccess(`تنظیمات «${certData.certTitle}» با موفقیت فعال شد.`);
           }}
         />
       )}

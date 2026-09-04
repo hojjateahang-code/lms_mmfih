@@ -16,6 +16,11 @@
   </head>
   <body class="bg-slate-50 antialiased overflow-x-hidden">
     <div id="root"></div>
+    <script>
+      window.addEventListener("error", function(e) {
+        document.body.innerHTML += "<div style=\"color:red;padding:20px;background:white;z-index:9999;position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;\"><pre>" + e.error.stack + "</pre></div>";
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
