@@ -1,0 +1,27 @@
+name: Deploy mfih_LMS to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: 77.238.122.209
+          username: mfih
+          key: ${{ secrets.SERVER_KEY }}
+          script: |
+            # رفتن به پوشه برنامه
+            cd /home/mfih/mfih_LMS
+            
+            # دریافت آخرین تغییرات از گیت‌هاب (اگر قبلاً کلون نشده باشد ارور نمی‌دهد)
+            git pull origin main || echo "First time deployment..."
+            
+            # پاک کردن کانتینر قبلی، بیلد کردن نسخه جدید و اجرای آن
+            docker compose down
+            docker compose up -d --build
