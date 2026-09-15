@@ -1,5 +1,5 @@
 # مرحله اول: نصب وابستگی‌ها و بیلد کردن کدهای فرانت‌اند
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # مرحله دوم: آماده‌سازی برای اجرای نهایی و کاهش حجم
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
