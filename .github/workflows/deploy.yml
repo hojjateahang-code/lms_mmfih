@@ -1,0 +1,24 @@
+name: Deploy mfih_LMS to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 77.238.122.209
+          username: mfih
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: 22
+          script: |
+            cd /home/mfih/mfih_LMS
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose down
+            docker compose up -d --build
