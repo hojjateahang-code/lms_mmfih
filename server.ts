@@ -24,14 +24,19 @@ async function startServer() {
   const dbUrl = process.env.DATABASE_URL || "postgres://lms_user:lms_password_123@postgres:5432/lms_db";
   const pool = new Pool({
     connectionString: dbUrl,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 3000,
+  });
+
+  // Handle background pool errors cleanly without crashing process
+  pool.on("error", (err) => {
+    console.warn("PostgreSQL pool background notification:", err.message);
   });
 
   let isDbConnected = false;
 
-  // Initialize DB asynchronously
+  // Initialize DB asynchronously without blocking server start
   const initDb = async () => {
-    let retries = 10;
+    let retries = 3;
     while (retries > 0) {
       try {
         const client = await pool.connect();
@@ -116,9 +121,12 @@ async function startServer() {
         isDbConnected = true;
         break;
       } catch (err: any) {
-        console.warn(`PostgreSQL connection attempt failed (${retries} retries left):`, err.message);
         retries--;
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        if (retries === 0) {
+          console.warn("PostgreSQL not available, running in preview/fallback mode.");
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
     }
   };
