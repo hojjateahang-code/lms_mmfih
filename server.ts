@@ -102,6 +102,80 @@ async function startServer() {
             completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             UNIQUE(user_id, lesson_id)
           );
+
+          CREATE TABLE IF NOT EXISTS academic_records (
+            id BIGSERIAL PRIMARY KEY,
+            user_id VARCHAR(255) NOT NULL,
+            course_title TEXT NOT NULL,
+            term TEXT NOT NULL,
+            instructor TEXT,
+            grade NUMERIC NOT NULL,
+            max_grade NUMERIC DEFAULT 20,
+            status TEXT DEFAULT 'passed',
+            certificate_id TEXT,
+            certificate_code TEXT,
+            absence_count INT DEFAULT 0,
+            max_allowed_absences INT DEFAULT 3,
+            year TEXT DEFAULT '۱۴۰۴',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+
+          CREATE TABLE IF NOT EXISTS attendance_records (
+            id BIGSERIAL PRIMARY KEY,
+            course_id BIGINT NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            user_name TEXT,
+            session_title TEXT NOT NULL,
+            session_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'present',
+            is_auto BOOLEAN DEFAULT false,
+            duration_minutes INT DEFAULT 0,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+
+          CREATE TABLE IF NOT EXISTS exams (
+            id BIGSERIAL PRIMARY KEY,
+            course_id BIGINT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            duration_minutes INT DEFAULT 20,
+            passing_score NUMERIC DEFAULT 12,
+            total_score NUMERIC DEFAULT 20,
+            questions JSONB DEFAULT '[]'::jsonb,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+
+          CREATE TABLE IF NOT EXISTS exam_submissions (
+            id BIGSERIAL PRIMARY KEY,
+            exam_id TEXT NOT NULL,
+            course_id BIGINT NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            user_name TEXT,
+            answers JSONB DEFAULT '{}'::jsonb,
+            score NUMERIC NOT NULL,
+            total_score NUMERIC NOT NULL,
+            percentage INT NOT NULL,
+            status TEXT NOT NULL,
+            submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+
+          CREATE TABLE IF NOT EXISTS certificates (
+            id VARCHAR(255) PRIMARY KEY,
+            user_id VARCHAR(255) NOT NULL,
+            course_id BIGINT NOT NULL,
+            student_name TEXT NOT NULL,
+            national_id TEXT,
+            course_title TEXT NOT NULL,
+            instructor_name TEXT,
+            final_score NUMERIC NOT NULL,
+            max_score NUMERIC DEFAULT 20,
+            grade_text TEXT,
+            issue_date TEXT NOT NULL,
+            verification_code VARCHAR(255) UNIQUE NOT NULL,
+            qr_data TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
         `);
 
         // Check if initial courses exist

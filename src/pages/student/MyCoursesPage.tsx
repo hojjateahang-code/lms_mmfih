@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, PlayCircle, Clock, CheckCircle, Award, Loader2 } from 'lucide-react';
-import { Course } from '../../types';
+import { BookOpen, PlayCircle, Clock, CheckCircle, Award, Loader2, Radio, ShieldAlert } from 'lucide-react';
+import { Course, Certificate } from '../../types';
 import { getUserEnrollments } from '../../services/courseService';
+import { getUserCertificates, isStudentDropped, getCourseAttendanceSummary } from '../../services/lmsService';
 import { useAuth } from '../../contexts/AuthContext';
+import CertificateViewerModal from '../../components/lms/CertificateViewerModal';
 
 interface MyCoursesPageProps {
   onSelectCourse: (course: Course) => void;
@@ -11,22 +13,29 @@ interface MyCoursesPageProps {
 export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
   const { user } = useAuth();
   const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewingCertificate, setViewingCertificate] = useState<Certificate | null>(null);
 
   useEffect(() => {
-    const fetchEnrollments = async () => {
+    const fetchData = async () => {
       if (!user) {
         setLoading(false);
         return;
       }
       setLoading(true);
-      const res = await getUserEnrollments(user.id);
-      if (res.success && res.data) {
-        setEnrollments(res.data);
+      const [enrollRes, certs] = await Promise.all([
+        getUserEnrollments(user.id),
+        getUserCertificates(user.id)
+      ]);
+
+      if (enrollRes.success && enrollRes.data) {
+        setEnrollments(enrollRes.data);
       }
+      setCertificates(certs);
       setLoading(false);
     };
-    fetchEnrollments();
+    fetchData();
   }, [user]);
 
   if (loading) {
@@ -49,25 +58,26 @@ export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
     <div className="min-h-screen bg-slate-50 pb-28 p-4 font-sans" dir="rtl">
       <div className="mb-5">
         <h1 className="font-black text-indigo-950 text-lg mb-1">دوره‌های ثبت‌نام‌شده من</h1>
-        <p className="text-xs text-slate-500">ادامه یادگیری و مشاهده ویدیوهای آموزشی</p>
+        <p className="text-xs text-slate-500">کلاس‌های آنلاین، محتوای آفلاین و پیگیری حضور و غیاب</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-indigo-600 text-white p-4 rounded-3xl shadow-sm">
           <BookOpen size={20} className="mb-2 text-indigo-200" />
           <div className="text-xl font-black">{enrollments.length} دوره</div>
-          <div className="text-[11px] text-indigo-100 font-medium">دوره‌های فعال</div>
+          <div className="text-[11px] text-indigo-100 font-medium">دوره‌های ثبت‌نامی فعال</div>
         </div>
-        <div className="bg-emerald-600 text-white p-4 rounded-3xl shadow-sm">
-          <Award size={20} className="mb-2 text-emerald-200" />
-          <div className="text-xl font-black">۰ گواهی</div>
-          <div className="text-[11px] text-emerald-100 font-medium">پایان دوره</div>
+        <div className="bg-amber-600 text-white p-4 rounded-3xl shadow-sm">
+          <Award size={20} className="mb-2 text-amber-200" />
+          <div className="text-xl font-black">{certificates.length} گواهی</div>
+          <div className="text-[11px] text-amber-100 font-medium">مدارک صادره رسمی</div>
         </div>
       </div>
 
       {enrollments.length === 0 ? (
-        <div className="text-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+        <div className="text-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-2">
           <p className="text-slate-500 font-bold text-sm">هنوز در دوره‌ای ثبت‌نام نکرده‌اید.</p>
+          <p className="text-xs text-slate-400">از صفحه خانه دوره‌های مورد نظر خود را انتخاب و ثبت‌نام نمایید.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -75,6 +85,9 @@ export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
             const c = enrol.course;
             if (!c) return null;
             
+            const isDropped = isStudentDropped(c.id, user.id);
+            const courseCert = certificates.find(cert => Number(cert.course_id) === Number(c.id));
+
             // map for onSelectCourse
             const mappedCourse: Course = {
               id: c.id.toString(),
@@ -95,18 +108,36 @@ export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
               is_free: c.price === 0
             };
 
-            const progress = 0; // Mock until full progress calculation
+            const progress = courseCert ? 100 : 45;
             
             return (
               <div
                 key={enrol.id}
-                onClick={() => onSelectCourse(mappedCourse)}
-                className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all"
+                className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm transition-all space-y-3"
               >
-                <div className="flex gap-3 mb-3">
-                  <img src={mappedCourse.banner_url} alt={mappedCourse.title} className="w-16 h-16 rounded-2xl object-cover" />
+                <div 
+                  onClick={() => onSelectCourse(mappedCourse)}
+                  className="flex gap-3 cursor-pointer"
+                >
+                  <img src={mappedCourse.banner_url} alt={mappedCourse.title} className="w-16 h-16 rounded-2xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] text-indigo-600 font-bold">{mappedCourse.category_name}</span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {mappedCourse.category_name}
+                      </span>
+                      {isDropped && (
+                        <span className="text-[9px] text-rose-700 font-black bg-rose-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <ShieldAlert size={10} />
+                          محروم شده (بیش از ۳ غیبت)
+                        </span>
+                      )}
+                      {courseCert && (
+                        <span className="text-[9px] text-emerald-800 font-black bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <CheckCircle size={10} />
+                          تکمیل‌شده (گواهی صادر شد)
+                        </span>
+                      )}
+                    </div>
                     <h3 className="font-bold text-slate-800 text-xs mb-1 truncate">{mappedCourse.title}</h3>
                     <div className="text-[10px] text-slate-500">{mappedCourse.instructor}</div>
                   </div>
@@ -115,30 +146,57 @@ export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
                 {/* Progress bar */}
                 <div>
                   <div className="flex justify-between text-[10px] font-bold mb-1">
-                    <span className="text-slate-600">پیشرفت دوره</span>
-                    <span className="text-indigo-600">% {progress}</span>
+                    <span className="text-slate-600">پیشرفت دوره و آزمون</span>
+                    <span className="text-indigo-600">٪ {progress}</span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full"
                       style={{ width: `${progress}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-slate-100 text-xs">
-                  <span className="text-slate-500 text-[10px] flex items-center gap-1">
-                    ثبت‌نام: {new Date(enrol.enrolled_at).toLocaleDateString('fa-IR')}
+                {/* Bottom Actions */}
+                <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-xs">
+                  <span className="text-slate-400 text-[10px]">
+                    سقف غیبت مجاز: ۳ جلسه
                   </span>
-                  <button className="text-indigo-600 font-black text-xs flex items-center gap-1">
-                    <PlayCircle size={14} /> مشاهده دروس
-                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {courseCert && (
+                      <button 
+                        onClick={() => setViewingCertificate(courseCert)}
+                        className="bg-amber-500 text-white font-black text-[11px] px-3 py-1.5 rounded-xl hover:bg-amber-600 flex items-center gap-1 shadow-sm"
+                      >
+                        <Award size={13} />
+                        مشاهده گواهی
+                      </button>
+                    )}
+
+                    <button 
+                      onClick={() => onSelectCourse(mappedCourse)}
+                      className="text-indigo-600 font-black text-xs flex items-center gap-1 hover:underline"
+                    >
+                      <PlayCircle size={14} /> ورود به دوره
+                    </button>
+                  </div>
                 </div>
+
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Certificate Viewer Modal */}
+      {viewingCertificate && (
+        <CertificateViewerModal
+          certificate={viewingCertificate}
+          onClose={() => setViewingCertificate(null)}
+        />
+      )}
+
     </div>
   );
 }

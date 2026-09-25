@@ -19,11 +19,15 @@ import {
   CheckCircle2,
   Radio,
   Users,
-  X
+  X,
+  ShieldAlert
 } from 'lucide-react';
 import AddLessonForm from '../../components/manager/forms/AddLessonForm';
 import AddQuizForm from '../../components/manager/forms/AddQuizForm';
 import AddCertificateForm from '../../components/manager/forms/AddCertificateForm';
+import AttendanceManagerModal from '../../components/lms/AttendanceManagerModal';
+import ExamManagerModal from '../../components/lms/ExamManagerModal';
+import LiveClassModal from '../../components/lms/LiveClassModal';
 
 interface CourseDashboardProps {
   courseId?: number;
@@ -31,10 +35,15 @@ interface CourseDashboardProps {
 }
 
 export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'sessions' | 'classes' | 'settings'>('sessions');
+  const [activeTab, setActiveTab] = useState<'sessions' | 'classes' | 'attendance' | 'exams' | 'settings'>('sessions');
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [modalType, setModalType] = useState<'lesson' | 'quiz' | 'certificate' | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // LMS Modals states
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [activeLiveRoom, setActiveLiveRoom] = useState<any | null>(null);
 
   // استیت‌های اتصال به دیتابیس
   const [sessions, setSessions] = useState<any[]>([]);
@@ -165,10 +174,10 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
 
       {/* Modern Tabs */}
       <div className="px-4 mb-5">
-        <div className="flex bg-slate-200/70 p-1 rounded-2xl">
+        <div className="flex bg-slate-200/70 p-1 rounded-2xl overflow-x-auto text-[11px] font-bold">
           <button
             onClick={() => setActiveTab('sessions')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`flex-1 min-w-[70px] py-2 rounded-xl transition-all ${
               activeTab === 'sessions' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -176,19 +185,43 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
           </button>
           <button
             onClick={() => setActiveTab('classes')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`flex-1 min-w-[70px] py-2 rounded-xl transition-all ${
               activeTab === 'classes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             کلاس‌ها (آنلاین)
           </button>
           <button
+            onClick={() => {
+              setActiveTab('attendance');
+              setShowAttendanceModal(true);
+            }}
+            className={`flex-1 min-w-[85px] py-2 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'attendance' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Users size={12} />
+            حضور و غیاب
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('exams');
+              setShowExamModal(true);
+            }}
+            className={`flex-1 min-w-[85px] py-2 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'exams' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <HelpCircle size={12} />
+            آزمون‌ها
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`flex-1 min-w-[60px] py-2 rounded-xl transition-all ${
               activeTab === 'settings' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            تنظیمات دوره
+            تنظیمات
           </button>
         </div>
       </div>
@@ -377,12 +410,68 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
 
                 <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
                   <span className="text-[10px] text-slate-500">مدرس: {cls.instructor}</span>
-                  <button className="bg-indigo-50 text-indigo-600 font-black text-[10px] px-3 py-1.5 rounded-xl hover:bg-indigo-100">
-                    ورود به اتاق جلسه
+                  <button 
+                    onClick={() => setActiveLiveRoom({
+                      id: `live_${cls.id}`,
+                      course_id: courseId,
+                      title: cls.title,
+                      scheduled_time: cls.date,
+                      status: 'live',
+                      room_url: 'https://meet.jit.si/LMS_MFIH_Class_Room',
+                      room_type: 'internal',
+                      instructor_name: cls.instructor
+                    })}
+                    className="bg-indigo-600 text-white font-black text-[10px] px-3.5 py-1.5 rounded-xl hover:bg-indigo-700 shadow-sm"
+                  >
+                    ورود به اتاق جلسه (مدرس)
                   </button>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Attendance Tab */}
+      {activeTab === 'attendance' && (
+        <div className="px-4 space-y-4">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-3">
+            <div className="flex items-center gap-2">
+              <Users size={20} className="text-indigo-600" />
+              <h3 className="font-bold text-slate-800 text-xs">مدیریت حضور و غیاب دوره</h3>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              ثبت دستی و خودکار حضور، جمع‌بندی هوشمند غیبت‌ها، و اعمال آیین‌نامه حذف خودکار دانشجویان با بیش از ۳ جلسه غیبت غیرمجاز.
+            </p>
+            <button
+              onClick={() => setShowAttendanceModal(true)}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs py-3 rounded-2xl transition flex items-center justify-center gap-1.5 shadow-md shadow-indigo-100"
+            >
+              <Users size={15} />
+              باز کردن سامانه جامع حضور و غیاب
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Exams Tab */}
+      {activeTab === 'exams' && (
+        <div className="px-4 space-y-4">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-3">
+            <div className="flex items-center gap-2">
+              <HelpCircle size={20} className="text-amber-500" />
+              <h3 className="font-bold text-slate-800 text-xs">سامانه امتحانات و تصحیح خودکار</h3>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              طراحی آزمون‌های چهارگزینه‌ای، تعیین حدنصاب قبولی، تصحیح خودکار نتایج و ثبت نمرات در کارنامه جامع دانشجویان.
+            </p>
+            <button
+              onClick={() => setShowExamModal(true)}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-3 rounded-2xl transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-100"
+            >
+              <HelpCircle size={15} />
+              مدیریت آزمون‌ها و تصحیح خودکار
+            </button>
           </div>
         </div>
       )}
@@ -655,6 +744,35 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
             }
             setModalType(null);
           }}
+        />
+      )}
+
+      {/* Attendance Manager Modal */}
+      {showAttendanceModal && (
+        <AttendanceManagerModal
+          courseId={courseId}
+          courseTitle={course?.title || 'دوره آموزشی'}
+          onClose={() => setShowAttendanceModal(false)}
+        />
+      )}
+
+      {/* Exam Manager Modal */}
+      {showExamModal && (
+        <ExamManagerModal
+          courseId={courseId}
+          courseTitle={course?.title || 'دوره آموزشی'}
+          onClose={() => setShowExamModal(false)}
+        />
+      )}
+
+      {/* Live Class Modal */}
+      {activeLiveRoom && (
+        <LiveClassModal
+          session={activeLiveRoom}
+          userId="usr_manager"
+          userName="مدیر / مدرس سامانه"
+          userRole="teacher"
+          onClose={() => setActiveLiveRoom(null)}
         />
       )}
     </div>
