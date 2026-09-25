@@ -1,9 +1,11 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import dotenv from "dotenv";
+import multer from "multer";
 
 dotenv.config();
 
@@ -174,6 +176,18 @@ async function startServer() {
             issue_date TEXT NOT NULL,
             verification_code VARCHAR(255) UNIQUE NOT NULL,
             qr_data TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+
+          CREATE TABLE IF NOT EXISTS live_sessions (
+            id BIGSERIAL PRIMARY KEY,
+            course_id BIGINT NOT NULL,
+            title TEXT NOT NULL,
+            scheduled_time TEXT NOT NULL,
+            status TEXT DEFAULT 'upcoming',
+            room_url TEXT NOT NULL,
+            room_type TEXT DEFAULT 'internal',
+            instructor_name TEXT NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
           );
         `);
@@ -486,6 +500,107 @@ async function startServer() {
       }
     } catch (error: any) {
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // --- Real File Storage & Upload API ---
+  const storagePath = process.env.STORAGE_PATH || path.join(process.cwd(), "storage");
+  try {
+    if (!fs.existsSync(storagePath)) {
+      fs.mkdirSync(storagePath, { recursive: true });
+    }
+  } catch (e: any) {
+    console.warn("Storage directory init:", e.message);
+  }
+
+  // Serve persistent storage files
+  app.use("/storage", express.static(storagePath));
+
+  const uploadStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, storagePath);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      const safeName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+      cb(null, safeName);
+    },
+  });
+
+  const upload = multer({
+    storage: uploadStorage,
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
+  });
+
+  app.post("/api/upload", upload.single("file"), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "فایلی ارسال نشد" });
+    }
+    const fileUrl = `/storage/${req.file.filename}`;
+    return res.json({
+      success: true,
+      fileUrl,
+      fileName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
+  });
+
+  // --- Live Sessions APIs ---
+  app.get("/api/courses/:id/live_sessions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!isDbConnected) {
+        return res.json([]);
+      }
+      const result = await pool.query(
+        "SELECT * FROM live_sessions WHERE course_id = $1 ORDER BY created_at DESC",
+        [id]
+      );
+      return res.json(result.rows);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/courses/:id/live_sessions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, scheduled_time, status, room_url, room_type, instructor_name } = req.body;
+      if (!isDbConnected) {
+        return res.json({
+          id: `live_${Date.now()}`,
+          course_id: id,
+          title,
+          scheduled_time,
+          status: status || "upcoming",
+          room_url: room_url || `https://meet.jit.si/LMS_MFIH_Course_${id}_${Date.now()}`,
+          room_type: room_type || "internal",
+          instructor_name: instructor_name || "مدرس دوره",
+        });
+      }
+
+      const roomUrl = room_url || `https://meet.jit.si/LMS_MFIH_Course_${id}_${Date.now()}`;
+      const result = await pool.query(
+        `INSERT INTO live_sessions (course_id, title, scheduled_time, status, room_url, room_type, instructor_name)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [id, title, scheduled_time || "به زودی", status || "upcoming", roomUrl, room_type || "internal", instructor_name || "مدرس دوره"]
+      );
+      return res.json(result.rows[0]);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/live_sessions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (isDbConnected) {
+        await pool.query("DELETE FROM live_sessions WHERE id = $1", [id]);
+      }
+      return res.json({ success: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
     }
   });
 

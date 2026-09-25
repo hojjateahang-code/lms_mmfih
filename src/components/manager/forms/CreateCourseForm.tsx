@@ -227,7 +227,7 @@ export default function CreateCourseForm({ onBack, onSave }: CreateCourseFormPro
       </div>
 
       {/* Sticky Bottom Submit Button */}
-      <div className="relative pb-24 pt-4 px-4 bg-white z-30">
+      <div className="relative pb-32 pt-4 px-4 bg-white z-30">
         <button
           type="button"
           disabled={loading}

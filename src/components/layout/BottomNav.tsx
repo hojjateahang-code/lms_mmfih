@@ -37,7 +37,7 @@ export default function BottomNav({ role, activeTab, setActiveTab }: BottomNavPr
   const tabs = (role === 'student' || !role) ? studentTabs : (role === 'teacher' ? teacherTabs : managerTabs);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 px-2.5 pb-3.5 pt-1 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-30 px-2.5 pb-3.5 pt-1 pointer-events-none">
       <div className="pointer-events-auto bg-white/75 backdrop-blur-2xl border border-white/70 shadow-[0_12px_40px_rgba(15,23,42,0.14)] rounded-full flex justify-around items-center p-1 transition-all">
         {tabs.map((tab) => {
           const Icon = tab.icon;

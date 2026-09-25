@@ -81,7 +81,7 @@ export default function ExamRoomModal({
   const isLastQuestion = currentQuestionIdx === exam.questions.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 font-sans">
+    <div className="fixed inset-0 z-[9999] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 font-sans">
       <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200">
         
         {/* Header */}

@@ -504,8 +504,72 @@ export const getUserCertificates = async (userId: string): Promise<Certificate[]
 // -------------------------------------------------------------
 
 export const getCourseLiveSessions = async (courseId: number): Promise<LiveSession[]> => {
+  try {
+    const res = await fetch(`/api/courses/${courseId}/live_sessions`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (err: any) {
+    console.warn('API get live sessions failed:', err.message);
+  }
   const sessions = getStorage<LiveSession[]>('lms_live_sessions', DEFAULT_LIVE_SESSIONS);
   return sessions.filter(s => Number(s.course_id) === Number(courseId));
+};
+
+export const createLiveSession = async (
+  courseId: number,
+  sessionData: {
+    title: string;
+    scheduled_time: string;
+    status?: 'upcoming' | 'live' | 'completed';
+    room_url?: string;
+    room_type?: 'internal' | 'external';
+    instructor_name?: string;
+  }
+): Promise<{ success: boolean; session?: LiveSession; error?: string }> => {
+  try {
+    const res = await fetch(`/api/courses/${courseId}/live_sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sessionData)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const sessions = getStorage<LiveSession[]>('lms_live_sessions', DEFAULT_LIVE_SESSIONS);
+      setStorage('lms_live_sessions', [data, ...sessions]);
+      return { success: true, session: data };
+    }
+  } catch (err: any) {
+    console.warn('API create live session failed:', err.message);
+  }
+
+  const newSession: LiveSession = {
+    id: `live_${Date.now()}`,
+    course_id: courseId,
+    title: sessionData.title,
+    scheduled_time: sessionData.scheduled_time,
+    status: sessionData.status || 'upcoming',
+    room_url: sessionData.room_url || `https://meet.jit.si/LMS_MFIH_Course_${courseId}_${Date.now()}`,
+    room_type: sessionData.room_type || 'internal',
+    instructor_name: sessionData.instructor_name || 'مدرس دوره'
+  };
+  const sessions = getStorage<LiveSession[]>('lms_live_sessions', DEFAULT_LIVE_SESSIONS);
+  setStorage('lms_live_sessions', [newSession, ...sessions]);
+  return { success: true, session: newSession };
+};
+
+export const deleteLiveSession = async (sessionId: string | number): Promise<{ success: boolean }> => {
+  try {
+    await fetch(`/api/live_sessions/${sessionId}`, { method: 'DELETE' });
+  } catch (err: any) {
+    console.warn('API delete live session failed:', err.message);
+  }
+  const sessions = getStorage<LiveSession[]>('lms_live_sessions', DEFAULT_LIVE_SESSIONS);
+  setStorage('lms_live_sessions', sessions.filter(s => String(s.id) !== String(sessionId)));
+  return { success: true };
 };
 
 export const joinLiveClassAndCheckIn = async (

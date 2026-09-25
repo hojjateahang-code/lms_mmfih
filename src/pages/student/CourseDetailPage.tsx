@@ -36,6 +36,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import LiveClassModal from '../../components/lms/LiveClassModal';
 import ExamRoomModal from '../../components/lms/ExamRoomModal';
 import CertificateViewerModal from '../../components/lms/CertificateViewerModal';
+import LessonViewerModal from '../../components/lms/LessonViewerModal';
 
 interface CourseDetailPageProps {
   course: Course;
@@ -596,7 +597,24 @@ export default function CourseDetailPage({ course, onBack, onEnroll }: CourseDet
         />
       )}
 
-      {/* 4. Payment Modal */}
+      {/* 4. Lesson Content Viewer (Video, Audio, PDF, Notes) */}
+      {studyModeLesson && (
+        <LessonViewerModal
+          lesson={studyModeLesson}
+          isCompleted={!!progress[studyModeLesson.id]}
+          onClose={() => setStudyModeLesson(null)}
+          onMarkComplete={handleCompleteLesson}
+          onStartQuiz={() => {
+            if (courseExams.length > 0) setActiveExam(courseExams[0]);
+          }}
+          onViewCertificate={async () => {
+            const certs = await getUserCertificates(user?.id || 'usr_current');
+            if (certs.length > 0) setViewingCertificate(certs[0]);
+          }}
+        />
+      )}
+
+      {/* 5. Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">

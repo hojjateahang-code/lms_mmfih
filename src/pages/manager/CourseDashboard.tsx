@@ -25,6 +25,7 @@ import {
 import AddLessonForm from '../../components/manager/forms/AddLessonForm';
 import AddQuizForm from '../../components/manager/forms/AddQuizForm';
 import AddCertificateForm from '../../components/manager/forms/AddCertificateForm';
+import CreateLiveClassModal from '../../components/manager/forms/CreateLiveClassModal';
 import AttendanceManagerModal from '../../components/lms/AttendanceManagerModal';
 import ExamManagerModal from '../../components/lms/ExamManagerModal';
 import LiveClassModal from '../../components/lms/LiveClassModal';
@@ -43,6 +44,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   // LMS Modals states
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showExamModal, setShowExamModal] = useState(false);
+  const [showCreateLiveModal, setShowCreateLiveModal] = useState(false);
   const [activeLiveRoom, setActiveLiveRoom] = useState<any | null>(null);
 
   // استیت‌های اتصال به دیتابیس
@@ -63,32 +65,26 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   const [showAddChapterModal, setShowAddChapterModal] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
 
-  // Form states for modals
-  const [newLessonTitle, setNewLessonTitle] = useState('');
-  const [newQuizTitle, setNewQuizTitle] = useState('');
-  const [certificateTitle, setCertificateTitle] = useState('گواهی رسمی پایان دوره فقه و معارف قرآن');
+  // Online Classes (متصل به سرور و دیتابیس)
+  const [liveSessionsList, setLiveSessionsList] = useState<any[]>([]);
 
-  // Online Classes (هنوز آفلاین/Mock)
-  const [onlineClasses, setOnlineClasses] = useState([
-    {
-      id: 1,
-      title: 'جلسه رفع اشکال و مباحثه زنده (Live)',
-      date: 'پنج‌شنبه ۱۲ اسفند - ساعت ۱۸:۳۰',
-      instructor: 'استاد مکارم شیرازی',
-      status: 'برنامه‌ریزی شده'
-    }
-  ]);
-
-  // --- Supabase Data Fetching ---
+  // --- Data Fetching ---
   const fetchContent = async () => {
     setIsLoading(true);
     const { getCourseContent, getCourseDetails } = await import('../../services/courseService');
+    const { getCourseLiveSessions } = await import('../../services/lmsService');
+    
     const courseRes = await getCourseDetails(courseId);
     if (courseRes.success && courseRes.data) setCourse(courseRes.data);
+    
     const res = await getCourseContent(courseId);
     if (res.success && res.data) {
       setSessions(res.data);
     }
+
+    const liveRes = await getCourseLiveSessions(courseId);
+    setLiveSessionsList(liveRes || []);
+
     setIsLoading(false);
   };
 
@@ -99,6 +95,13 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   const triggerSuccess = (msg: string) => {
     setActionSuccess(msg);
     setTimeout(() => setActionSuccess(null), 3000);
+  };
+
+  const handleDeleteLiveSession = async (sessionId: string | number, title: string) => {
+    const { deleteLiveSession } = await import('../../services/lmsService');
+    await deleteLiveSession(sessionId);
+    triggerSuccess(`کلاس «${title}» حذف گردید.`);
+    await fetchContent();
   };
 
   // --- Handlers متصل به دیتابیس ---
@@ -147,7 +150,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 font-sans" dir="rtl">
+    <div className="min-h-screen bg-slate-50 pb-36 font-sans" dir="rtl">
       {/* Header */}
       <div className="bg-white px-4 py-4 rounded-b-3xl shadow-sm mb-4 sticky top-0 z-20 flex items-center border-b border-slate-100">
         <button
@@ -385,49 +388,82 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
               <Radio size={15} className="text-rose-500 animate-pulse" /> کلاس‌های برخط و وبینارها
             </h2>
             <button
-              onClick={() => triggerSuccess('فرم ایجاد کلاس آنلاین باز شد.')}
-              className="bg-indigo-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm"
+              onClick={() => setShowCreateLiveModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-[11px] px-3.5 py-1.5 rounded-xl flex items-center gap-1 shadow-sm transition cursor-pointer"
             >
-              <Plus size={12} /> کلاس جدید
+              <Plus size={13} /> ایجاد کلاس جدید
             </button>
           </div>
 
           <div className="space-y-3">
-            {onlineClasses.map((cls) => (
-              <div key={cls.id} className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-xs">{cls.title}</h3>
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1">
-                      <Calendar size={11} className="text-indigo-500" />
-                      <span>{cls.date}</span>
+            {liveSessionsList.length === 0 ? (
+              <div className="bg-white rounded-3xl p-6 text-center shadow-sm border border-slate-100 space-y-3">
+                <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto">
+                  <Radio size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-xs">هیچ جلسه آنلاینی تعریف نشده است</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    می‌توانید برای این دوره وبینار زنده با امکان تصویر، صوت، گفتگو و حضور و غیاب هوشمند ایجاد کنید.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCreateLiveModal(true)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-2xl shadow-sm inline-flex items-center gap-1"
+                >
+                  <Plus size={14} /> ایجاد اولین کلاس آنلاین
+                </button>
+              </div>
+            ) : (
+              liveSessionsList.map((cls) => (
+                <div key={cls.id} className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-black text-slate-800 text-xs">{cls.title}</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1">
+                        <Calendar size={11} className="text-indigo-500" />
+                        <span>{cls.scheduled_time || cls.date || 'امروز'}</span>
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-lg border ${
+                      cls.status === 'live' 
+                        ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
+                        : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                    }`}>
+                      {cls.status === 'live' ? 'درحال برگزاری (LIVE)' : 'برنامه‌ریزی شده'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
+                    <span className="text-[10px] text-slate-500 font-medium">مدرس: {cls.instructor_name || cls.instructor || 'مدرس دوره'}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        onClick={() => handleDeleteLiveSession(cls.id, cls.title)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-xl transition"
+                        title="حذف کلاس آنلاین"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                      <button 
+                        onClick={() => setActiveLiveRoom({
+                          id: cls.id,
+                          course_id: courseId,
+                          title: cls.title,
+                          scheduled_time: cls.scheduled_time || cls.date,
+                          status: 'live',
+                          room_url: cls.room_url || `https://meet.jit.si/LMS_MFIH_Course_${courseId}_${cls.id}`,
+                          room_type: cls.room_type || 'internal',
+                          instructor_name: cls.instructor_name || cls.instructor || 'مدرس دوره'
+                        })}
+                        className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-[10.5px] px-3.5 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
+                      >
+                        ورود به اتاق جلسه (مدرس)
+                      </button>
                     </div>
                   </div>
-                  <span className="text-[9px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg border border-rose-100">
-                    {cls.status}
-                  </span>
                 </div>
-
-                <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
-                  <span className="text-[10px] text-slate-500">مدرس: {cls.instructor}</span>
-                  <button 
-                    onClick={() => setActiveLiveRoom({
-                      id: `live_${cls.id}`,
-                      course_id: courseId,
-                      title: cls.title,
-                      scheduled_time: cls.date,
-                      status: 'live',
-                      room_url: 'https://meet.jit.si/LMS_MFIH_Class_Room',
-                      room_type: 'internal',
-                      instructor_name: cls.instructor
-                    })}
-                    className="bg-indigo-600 text-white font-black text-[10px] px-3.5 py-1.5 rounded-xl hover:bg-indigo-700 shadow-sm"
-                  >
-                    ورود به اتاق جلسه (مدرس)
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
@@ -598,15 +634,15 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9998] animate-in fade-in duration-200"
             onClick={() => setShowAddMenu(false)}
           />
 
           {/* Menu */}
-          <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[2.5rem] p-6 z-50 shadow-2xl border-t border-slate-100 animate-in slide-in-from-bottom duration-300">
+          <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[2.5rem] p-6 pb-12 z-[9999] shadow-2xl border-t border-slate-100 animate-in slide-in-from-bottom duration-300">
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-5" />
             <h3 className="text-center font-black text-slate-800 mb-1 text-base">انتخاب نوع محتوا</h3>
-            <p className="text-center text-xs text-slate-400 mb-6">محتوای جدیدی را به دوره اضافه کنید</p>
+            <p className="text-center text-xs text-slate-400 mb-6">محتوای جدیدی را به این فصل اضافه کنید</p>
 
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -616,7 +652,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                   setEditingLessonData(null);
                   setModalType('lesson');
                 }}
-                className="flex flex-col items-center p-3.5 bg-blue-50/80 hover:bg-blue-100 active:scale-95 rounded-3xl transition-all border border-blue-100"
+                className="flex flex-col items-center p-3.5 bg-blue-50/80 hover:bg-blue-100 active:scale-95 rounded-3xl transition-all border border-blue-100 cursor-pointer"
               >
                 <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-2 shadow-inner">
                   <Video size={22} />
@@ -629,7 +665,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                   setShowAddMenu(false);
                   setModalType('quiz');
                 }}
-                className="flex flex-col items-center p-3.5 bg-amber-50/80 hover:bg-amber-100 active:scale-95 rounded-3xl transition-all border border-amber-100"
+                className="flex flex-col items-center p-3.5 bg-amber-50/80 hover:bg-amber-100 active:scale-95 rounded-3xl transition-all border border-amber-100 cursor-pointer"
               >
                 <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 mb-2 shadow-inner">
                   <HelpCircle size={22} />
@@ -642,7 +678,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                   setShowAddMenu(false);
                   setModalType('certificate');
                 }}
-                className="flex flex-col items-center p-3.5 bg-emerald-50/80 hover:bg-emerald-100 active:scale-95 rounded-3xl transition-all border border-emerald-100"
+                className="flex flex-col items-center p-3.5 bg-emerald-50/80 hover:bg-emerald-100 active:scale-95 rounded-3xl transition-all border border-emerald-100 cursor-pointer"
               >
                 <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 mb-2 shadow-inner">
                   <Award size={22} />
@@ -670,7 +706,11 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
               const res = await updateLesson(editingLessonId, {
                 title: lessonData.title,
                 type: lessonData.type as any || 'video',
-                duration_minutes: parseInt(lessonData.duration.split(' ')[0]) || 30
+                duration: lessonData.duration || '۳۰ دقیقه',
+                video_url: lessonData.video_url || '',
+                file_url: lessonData.file_url || '',
+                content: lessonData.content || '',
+                is_free: !!lessonData.isFree
               });
               if (res.success) {
                 triggerSuccess(`درس «${lessonData.title}» با موفقیت به‌روزرسانی شد.`);
@@ -680,12 +720,15 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                 chapter_id: activeChapterId,
                 title: lessonData.title,
                 type: lessonData.type as any || 'video',
-                duration_minutes: parseInt(lessonData.duration.split(' ')[0]) || 30,
-                is_free: false,
+                duration: lessonData.duration || '۳۰ دقیقه',
+                video_url: lessonData.video_url || '',
+                file_url: lessonData.file_url || '',
+                content: lessonData.content || '',
+                is_free: !!lessonData.isFree,
                 order_num: 0
               });
               if (res.success) {
-                triggerSuccess(`درس «${lessonData.title}» با موفقیت اضافه شد.`);
+                triggerSuccess(`درس «${lessonData.title}» با موفقیت به سرفصل اضافه شد.`);
               }
             }
             
@@ -704,16 +747,31 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
           onSave={async (quizData) => {
             if (activeChapterId) {
               const { createLesson } = await import('../../services/courseService');
+              const { createExam } = await import('../../services/lmsService');
+              
+              // 1. Create real exam with questions in database
+              await createExam({
+                course_id: courseId,
+                title: quizData.title,
+                description: `آزمون رسمی آنلاین - زمان: ${quizData.duration} دقیقه - حدنصاب قبولی: ${quizData.passScore} از ۲۰`,
+                duration_minutes: parseInt(quizData.duration) || 20,
+                passing_score: parseInt(quizData.passScore) || 12,
+                total_score: quizData.totalScore || 20,
+                is_active: true,
+                questions: quizData.questions || []
+              });
+
+              // 2. Add quiz lesson item to the chapter
               const res = await createLesson({
                 chapter_id: activeChapterId,
                 title: quizData.title,
                 type: 'quiz',
-                duration_minutes: parseInt(quizData.duration) || 30,
+                duration: `${quizData.duration} دقیقه`,
                 is_free: false,
                 order_num: 0
               });
               if (res.success) {
-                triggerSuccess(`آزمون «${quizData.title}» با موفقیت ثبت شد.`);
+                triggerSuccess(`آزمون «${quizData.title}» با موفقیت در سرفصل و بانک آزمون‌ها ثبت شد.`);
                 await fetchContent();
               }
             }
@@ -733,16 +791,28 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                 chapter_id: activeChapterId,
                 title: certData.certTitle,
                 type: 'certificate',
-                duration_minutes: 0,
+                duration: `${certData.durationHours} ساعت`,
                 is_free: false,
                 order_num: 0
               });
               if (res.success) {
-                triggerSuccess(`تنظیمات «${certData.certTitle}» با موفقیت فعال شد.`);
+                triggerSuccess(`تنظیمات صدور گواهی «${certData.certTitle}» با موفقیت فعال شد.`);
                 await fetchContent();
               }
             }
             setModalType(null);
+          }}
+        />
+      )}
+
+      {/* Create Live Class Modal */}
+      {showCreateLiveModal && (
+        <CreateLiveClassModal
+          courseId={courseId}
+          onClose={() => setShowCreateLiveModal(false)}
+          onSuccess={(title) => {
+            triggerSuccess(`کلاس آنلاین «${title}» با موفقیت ایجاد گردید.`);
+            fetchContent();
           }}
         />
       )}

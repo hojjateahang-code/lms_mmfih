@@ -151,8 +151,8 @@ export interface LiveSession {
   course_id: number;
   title: string;
   scheduled_time: string;
-  status: 'upcoming' | 'live' | 'ended';
+  status: 'upcoming' | 'live' | 'ended' | 'completed';
   room_url: string;
-  room_type: 'internal' | 'skyroom' | 'jitsi' | 'meet';
+  room_type: 'internal' | 'external' | 'skyroom' | 'jitsi' | 'meet';
   instructor_name: string;
 }
