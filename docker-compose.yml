@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
 
   mfih-lms-app:
     build:
@@ -22,7 +22,7 @@ services:
     container_name: mfih-lms-container
     restart: always
     ports:
-      - "127.0.0.1:3002:3000"
+      - "3002:3000"
     volumes:
       - /home/mfih/mfih_LMS/storage:/app/storage
     environment:
