@@ -83,20 +83,7 @@ function AppRouter() {
 
   return (
     <div className="max-w-md mx-auto bg-slate-50 min-h-screen relative shadow-2xl overflow-hidden border-x border-slate-200 font-sans" dir="rtl">
-      {/* Top Eitaa Indicator Bar (For Dev / Debug context) */}
-      <div className="bg-slate-900 text-white px-3 py-1.5 flex justify-between items-center text-[10px] font-bold border-b border-slate-800">
-        <div className="flex items-center gap-1.5 text-amber-300">
-          <Smartphone size={12} />
-          <span>مینی‌اپ متصل به Supabase</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="bg-indigo-600/80 px-2 py-0.5 rounded-full text-[9px] text-white">
-            نقش: {role === 'executive_manager' ? 'مدیریت' : (role === 'teacher' ? 'استاد' : 'دانش‌پژوه')}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Tab Views depending on actual role from Supabase */}
+      {/* Main Tab Views */}
       {(role === 'student' || role === null) && (
         <>
           {activeTab === 'home' && <StudentHome onSelectCourse={handleSelectCourse} user={user as any} />}
