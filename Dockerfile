@@ -1,5 +1,5 @@
 # مرحله اول: نصب وابستگی‌ها و بیلد کردن کدهای فرانت‌اند
-FROM hub.hamravesh.com/dockerhub/library/node:22-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -14,7 +14,7 @@ ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN npm run build
 
 # مرحله دوم: آماده‌سازی برای اجرای نهایی و کاهش حجم
-FROM hub.hamravesh.com/dockerhub/library/node:22-alpine
+FROM node:22-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
