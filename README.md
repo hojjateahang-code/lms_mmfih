@@ -21,3 +21,4 @@ docker compose up -d --build
 ## 🛠 تکنولوژی‌ها
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend & DB**: Node.js, Express, PostgreSQL
+- **CI/CD**: GitHub Actions (Automatic SSH Deployment)
