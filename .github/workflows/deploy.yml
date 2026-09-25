@@ -12,9 +12,9 @@ jobs:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 77.238.122.209
-          username: mfih
-          password: ${{ secrets.SERVER_PASSWORD }}
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_KEY }}
           port: 22
           script: |
             cd /home/mfih/mfih_LMS
