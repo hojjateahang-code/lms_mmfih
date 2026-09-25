@@ -1,5 +1,5 @@
 // src/components/lms/LessonViewerModal.tsx
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   X, 
   Video, 
@@ -12,7 +12,11 @@ import {
   Award, 
   Clock, 
   BookOpen,
-  CheckCircle2
+  CheckCircle2,
+  Maximize2,
+  Minimize2,
+  RotateCw,
+  Monitor
 } from 'lucide-react';
 import { Lesson } from '../../services/courseService';
 
@@ -33,10 +37,54 @@ export default function LessonViewerModal({
   onStartQuiz,
   onViewCertificate
 }: LessonViewerModalProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const mediaUrl = lesson.video_url || lesson.file_url || lesson.media_url || '';
-  const isVideo = lesson.type === 'video' || (mediaUrl && (mediaUrl.includes('.mp4') || mediaUrl.includes('.webm')));
+  const isVideo = lesson.type === 'video' || (mediaUrl && (mediaUrl.includes('.mp4') || mediaUrl.includes('.webm') || mediaUrl.includes('sample/')));
   const isAudio = lesson.type === 'audio' || (mediaUrl && (mediaUrl.includes('.mp3') || mediaUrl.includes('.wav') || mediaUrl.includes('.ogg')));
   const isPdf = lesson.type === 'pdf' || (mediaUrl && mediaUrl.includes('.pdf'));
+
+  const handleHorizontalFullscreen = async () => {
+    const video = videoRef.current;
+    const container = videoContainerRef.current;
+    if (!video && !container) return;
+
+    try {
+      const elem: any = container || video;
+
+      if (!document.fullscreenElement) {
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          await elem.webkitRequestFullscreen();
+        } else if ((video as any)?.webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        }
+
+        setIsFullscreen(true);
+
+        // Attempt locking orientation to landscape
+        if (typeof window !== 'undefined' && 'screen' in window && screen.orientation && (screen.orientation as any).lock) {
+          try {
+            await (screen.orientation as any).lock('landscape');
+          } catch (e) {
+            // Orientation lock might require user gesture or not be supported on desktop
+          }
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.warn('Fullscreen toggle failed:', err);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 font-sans" dir="rtl">
@@ -79,19 +127,35 @@ export default function LessonViewerModal({
         {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           
-          {/* 1. Video Player Area */}
+          {/* 1. Video Player Area with Horizontal Fullscreen Controls */}
           {isVideo && (
             <div className="space-y-2">
-              <div className="rounded-2xl overflow-hidden bg-black shadow-lg aspect-video flex items-center justify-center relative border border-slate-800">
+              <div 
+                ref={videoContainerRef}
+                className="rounded-2xl overflow-hidden bg-black shadow-lg aspect-video flex items-center justify-center relative border border-slate-800 group"
+              >
                 {mediaUrl ? (
-                  <video 
-                    controls 
-                    playsInline 
-                    className="w-full h-full object-contain"
-                    src={mediaUrl}
-                  >
-                    مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
-                  </video>
+                  <>
+                    <video 
+                      ref={videoRef}
+                      controls 
+                      playsInline 
+                      className="w-full h-full object-contain"
+                      src={mediaUrl}
+                    >
+                      مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+                    </video>
+
+                    {/* Horizontal Landscape Fullscreen Floating Overlay Button */}
+                    <button
+                      onClick={handleHorizontalFullscreen}
+                      className="absolute top-3 left-3 bg-slate-900/80 hover:bg-slate-900 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-xl border border-white/20 transition-all flex items-center gap-1.5 shadow-lg active:scale-95 cursor-pointer z-10"
+                      title="پخش تمام‌صفحه افقی (سینمایی)"
+                    >
+                      <RotateCw size={13} className="text-amber-400" />
+                      <span>تمام‌صفحه افقی</span>
+                    </button>
+                  </>
                 ) : (
                   <div className="text-center p-6 text-slate-400 space-y-2">
                     <Video size={40} className="mx-auto text-slate-600" />
@@ -100,6 +164,23 @@ export default function LessonViewerModal({
                   </div>
                 )}
               </div>
+
+              {/* Dedicated Horizontal Fullscreen Action Bar */}
+              {mediaUrl && (
+                <div className="flex items-center justify-between bg-slate-100/90 rounded-2xl p-2.5 px-3 border border-slate-200 text-xs">
+                  <span className="text-slate-600 font-bold flex items-center gap-1.5">
+                    <Monitor size={14} className="text-indigo-600" />
+                    امکان پخش افقی تمام صفحه برای نمایش بهتر تخته و اسلایدها
+                  </span>
+                  <button
+                    onClick={handleHorizontalFullscreen}
+                    className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-[11px] px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                  >
+                    <Maximize2 size={13} />
+                    <span>پخش افقی سینمایی</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -138,7 +219,7 @@ export default function LessonViewerModal({
                 target="_blank"
                 rel="noopener noreferrer"
                 download
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shrink-0 transition shadow-xs"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shrink-0 transition shadow-xs cursor-pointer"
               >
                 <Download size={13} />
                 <span>دانلود / نمایش</span>
@@ -166,7 +247,7 @@ export default function LessonViewerModal({
               <div>
                 <h4 className="font-black text-sm text-amber-950">آزمون جامع این فصل</h4>
                 <p className="text-xs text-amber-800 mt-1">
-                  شامل سوالات چندگزینه‌ای با تصحیح خودکار آنی و ثبت نمره در پرونده تحصیلی.
+                  شامل سوالات تستی و تشریحی با تصحیح خودکار آنی و ثبت نمره در پرونده تحصیلی.
                 </p>
               </div>
               {onStartQuiz && (

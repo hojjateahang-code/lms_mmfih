@@ -58,6 +58,27 @@ export default function AttendanceManagerModal({
   const [filterType, setFilterType] = useState<'all' | 'dropped' | 'warning'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
+  useEffect(() => {
+    const loadUsers = async () => {
+      const { getAllUsers } = await import('../../services/userService');
+      const res = await getAllUsers();
+      if (res.success && res.data && res.data.length > 0) {
+        const studentUsers = res.data.filter((u: any) => u.role !== 'executive_manager');
+        if (studentUsers.length > 0) {
+          setStudents(studentUsers.map((u: any, idx: number) => ({
+            userId: u.id,
+            userName: u.full_name || 'دانش‌پژوه',
+            status: idx % 2 === 0 ? 'present' : (idx === 1 ? 'absent' : 'justified'),
+            isAuto: idx % 2 === 0,
+            totalAbsences: idx === 1 ? 4 : (idx === 3 ? 3 : 1),
+            isDropped: idx === 1
+          })));
+        }
+      }
+    };
+    loadUsers();
+  }, []);
+
   // Toggle student status
   const handleToggleStatus = async (userId: string, newStatus: AttendanceStatus) => {
     const targetStudent = students.find(s => s.userId === userId);

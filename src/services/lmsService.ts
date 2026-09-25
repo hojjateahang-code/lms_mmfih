@@ -67,14 +67,16 @@ const DEFAULT_EXAMS: Exam[] = [
     id: 'exam_c1',
     course_id: 1,
     title: 'آزمون جامع پایان ترم: هوش مصنوعی و پایتون',
-    description: 'این آزمون شامل ۴ سوال چهارگزینه‌ای تخصصی با زمان محدود است. نمره قبولی حداقل ۱۲ از ۲۰ می‌باشد.',
-    duration_minutes: 20,
+    description: 'این آزمون شامل سوالات تستی و تشریحی تخصصی با زمان محدود است. نمره قبولی حداقل ۱۲ از ۲۰ می‌باشد.',
+    duration_minutes: 25,
     passing_score: 12,
-    total_score: 20,
+    total_score: 25,
+    max_attempts: 2,
     is_active: true,
     questions: [
       {
         id: 'q1',
+        type: 'multiple_choice',
         question: 'کدام کتابخانه پایتون بیشترین کاربرد را در آموزش مدل‌های یادگیری عمیق (Deep Learning) دارد؟',
         options: ['PyTorch / TensorFlow', 'Pandas', 'Flask', 'BeautifulSoup'],
         correct_index: 0,
@@ -82,6 +84,7 @@ const DEFAULT_EXAMS: Exam[] = [
       },
       {
         id: 'q2',
+        type: 'multiple_choice',
         question: 'تفاوت اصلی یادگیری با نظارت (Supervised) و بدون نظارت (Unsupervised) در چیست؟',
         options: [
           'وجود داده‌های برچسب‌دار (Labeled Data) در یادگیری با نظارت',
@@ -94,6 +97,7 @@ const DEFAULT_EXAMS: Exam[] = [
       },
       {
         id: 'q3',
+        type: 'multiple_choice',
         question: 'در معماری Transformer، مکانیزم اصلی درک روابط میان کلمات کدام است؟',
         options: ['Self-Attention (توجه به خود)', 'Convolution', 'Pooling', 'Recurrent Backprop'],
         correct_index: 0,
@@ -101,6 +105,7 @@ const DEFAULT_EXAMS: Exam[] = [
       },
       {
         id: 'q4',
+        type: 'multiple_choice',
         question: 'تابع هزینه (Loss Function) در یادگیری ماشین چه وظیفه‌ای دارد؟',
         options: [
           'سنجش میزان خطای پیش‌بینی مدل نسبت به مقدار واقعی',
@@ -110,6 +115,13 @@ const DEFAULT_EXAMS: Exam[] = [
         ],
         correct_index: 0,
         score: 5
+      },
+      {
+        id: 'q5',
+        type: 'descriptive',
+        question: 'مفهوم Overfitting (بیش‌برازش) در مدل‌های یادگیری ماشین را به زبان ساده تعریف کنید و دو روش موثر برای جلوگیری از آن را نام ببرید.',
+        sample_answer: 'بیش‌برازش حالتی است که مدل جزئیات و نویزهای داده‌های آموزشی را یاد می‌گیرد اما روی داده‌های جدید دقت پایینی دارد. روش‌های جلوگیری: ۱. Regularization ۲. Dropout ۳. افزایش داده‌ها (Data Augmentation) ۴. توقف زودهنگام (Early Stopping).',
+        score: 5
       }
     ]
   },
@@ -118,26 +130,99 @@ const DEFAULT_EXAMS: Exam[] = [
     course_id: 2,
     title: 'آزمون رسمی React و TypeScript',
     description: 'آزمون سنجش مهارت‌های مدرن React 19، هوک‌ها و تایپ‌اسکریپت.',
-    duration_minutes: 15,
+    duration_minutes: 20,
     passing_score: 12,
     total_score: 20,
+    max_attempts: 3,
     is_active: true,
     questions: [
       {
         id: 'q2_1',
-        question: 'هوک useEffect برای مدیریت چه مواردی در React استفاده می‌شود؟',
-        options: ['Side Effects (عوارض جانبی)', 'طراحی CSS', 'تعریف روت‌ها', 'تنظیم متغیر محلی'],
+        type: 'multiple_choice',
+        question: 'کدام هوک برای نگهداری مقداری که تغییر آن نیاز به رندر مجدد ندارد به کار می‌رود؟',
+        options: ['useRef', 'useState', 'useEffect', 'useMemo'],
         correct_index: 0,
-        score: 10
+        score: 5
       },
       {
         id: 'q2_2',
-        question: 'مزیت استفاده از TypeScript در کنار React چیست؟',
-        options: ['Type Safety و شناسایی خطاها پیش از اجرا', 'افزایش حجم فایل', 'حذف HTML', 'اجرای بدون کامپایلر'],
+        type: 'multiple_choice',
+        question: 'هدف اصلی تایپ‌اسکریپت چیست؟',
+        options: ['افزودن Type Safety و کاهش خطاهای زمان اجرا', 'افزایش حجم کد', 'جایگزینی HTML', 'سرعت بخشیدن به CSS'],
         correct_index: 0,
+        score: 5
+      },
+      {
+        id: 'q2_3',
+        type: 'descriptive',
+        question: 'مزایای استفاده از Server Components در React را توضیح دهید.',
+        sample_answer: 'کاهش حجم باندل سمت کلاینت، دسترسی مستقیم به منابع سرور و دیتابیس بدون نیاز به API، و بهبود زمان اولین لود و سئو.',
         score: 10
       }
     ]
+  }
+];
+
+const DEFAULT_SUBMISSIONS: ExamSubmission[] = [
+  {
+    id: 'sub_1',
+    exam_id: 'exam_c1',
+    course_id: 1,
+    user_id: 'usr_current',
+    user_name: 'حجت‌الله آهنگ',
+    answers: {
+      q1: 0,
+      q2: 0,
+      q3: 0,
+      q4: 0,
+      q5: 'بیش‌برازش زمانی رخ می‌دهد که مدل داده‌های آموزش را به خاطر بسپارد و تعمیم‌پذیری پایینی داشته باشد. برای رفع آن از Dropout و Data Augmentation استفاده می‌کنیم.'
+    },
+    score: 25,
+    total_score: 25,
+    percentage: 100,
+    status: 'passed',
+    submitted_at: '۱۴۰۴/۰۶/۱۰ - ۱۴:۳۰',
+    attempt_number: 1
+  },
+  {
+    id: 'sub_2',
+    exam_id: 'exam_c1',
+    course_id: 1,
+    user_id: 'usr_3',
+    user_name: 'فاطمه حسینی',
+    answers: {
+      q1: 0,
+      q2: 0,
+      q3: 1,
+      q4: 0,
+      q5: 'بیش‌برازش یعنی یادگیری نویز داده‌ها. راهکارها تنظیم هایپرپارامترها و منظم‌سازی L1/L2 است.'
+    },
+    score: 20,
+    total_score: 25,
+    percentage: 80,
+    status: 'passed',
+    submitted_at: '۱۴۰۴/۰۶/۱۱ - ۱۰:۱۵',
+    attempt_number: 1
+  },
+  {
+    id: 'sub_3',
+    exam_id: 'exam_c1',
+    course_id: 1,
+    user_id: 'usr_2',
+    user_name: 'محمدامین شمس',
+    answers: {
+      q1: 1,
+      q2: 0,
+      q3: 2,
+      q4: 1,
+      q5: ''
+    },
+    score: 5,
+    total_score: 25,
+    percentage: 20,
+    status: 'failed',
+    submitted_at: '۱۴۰۴/۰۶/۱۲ - ۱۶:۴۵',
+    attempt_number: 1
   }
 ];
 
@@ -145,45 +230,45 @@ const DEFAULT_LIVE_SESSIONS: LiveSession[] = [
   {
     id: 'live_1',
     course_id: 1,
-    title: 'کارگاه آنلاین زنده: کدنویسی شبکه عصبی با PyTorch',
-    scheduled_time: 'امروز ساعت ۱۸:۳۰',
+    title: 'جلسه رفع اشکال و پرسش و پاسخ زنده پایتون',
+    scheduled_time: 'پنج‌شنبه ۱۲ اسفند - ساعت ۱۸:۳۰',
     status: 'live',
-    room_url: 'https://meet.jit.si/LMS_MFIH_Python_AI_Room',
+    room_url: 'https://meet.jit.si/LMS_MFIH_Course_1_General',
     room_type: 'internal',
-    instructor_name: 'دکتر علیرضا رضایی'
+    instructor_name: 'دکتر محمدرضا حسینی'
   },
   {
     id: 'live_2',
-    course_id: 2,
-    title: 'جلسه وبینار آنلاین: اصول طراحی State و معماری کامپوننت‌ها',
-    scheduled_time: 'چهارشنبه ساعت ۱۹:۰۰',
+    course_id: 1,
+    title: 'کارگاه عملی پیاده‌سازی شبکه عصبی در PyTorch',
+    scheduled_time: 'دوشنبه ۱۶ اسفند - ساعت ۲۰:۰۰',
     status: 'upcoming',
-    room_url: 'https://meet.jit.si/LMS_MFIH_React_TS_Room',
+    room_url: 'https://meet.jit.si/LMS_MFIH_Course_1_Workshop',
     room_type: 'internal',
-    instructor_name: 'مهندس حسینی'
+    instructor_name: 'دکتر محمدرضا حسینی'
   }
 ];
 
-// Helper to get local data safely
-const getStorage = <T>(key: string, defaultVal: T): T => {
+// Helper functions for LocalStorage Persistence
+const getStorage = <T>(key: string, defaultValue: T): T => {
   try {
-    const val = localStorage.getItem(key);
-    return val ? JSON.parse(val) : defaultVal;
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
   } catch {
-    return defaultVal;
+    return defaultValue;
   }
 };
 
-const setStorage = <T>(key: string, val: T): void => {
+const setStorage = <T>(key: string, value: T): void => {
   try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch (err) {
-    console.warn('Storage set failed', err);
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error(`Error saving to localStorage ${key}:`, e);
   }
 };
 
 // -------------------------------------------------------------
-// 1. سوابق گذشته (Past Records: Grades, Transcripts & Certificates)
+// 1. سوابق تحصیلی، نمرات و ریزنمرات گذشته (Academic Transcripts)
 // -------------------------------------------------------------
 
 export const getAcademicRecords = async (userId: string): Promise<AcademicRecord[]> => {
@@ -193,17 +278,17 @@ export const getAcademicRecords = async (userId: string): Promise<AcademicRecord
 
 export const addAcademicRecord = async (record: Omit<AcademicRecord, 'id' | 'created_at'>): Promise<AcademicRecord> => {
   const records = getStorage<AcademicRecord[]>('lms_academic_records', DEFAULT_ACADEMIC_RECORDS);
-  const newRec: AcademicRecord = {
+  const newRecord: AcademicRecord = {
     ...record,
     id: `rec_${Date.now()}`,
     created_at: new Date().toISOString()
   };
-  setStorage('lms_academic_records', [newRec, ...records]);
-  return newRec;
+  setStorage('lms_academic_records', [newRecord, ...records]);
+  return newRecord;
 };
 
 // -------------------------------------------------------------
-// 2. حضور و غیاب دستی و خودکار + جمع‌بندی غیبت‌ها و حذف خودکار
+// 2. حضور و غیاب هوشمند و سیستم حذف خودکار (Attendance & Auto-Drop)
 // -------------------------------------------------------------
 
 export const getAttendanceRecords = async (courseId: number, userId?: string): Promise<AttendanceRecord[]> => {
@@ -212,8 +297,8 @@ export const getAttendanceRecords = async (courseId: number, userId?: string): P
       id: 'att_1',
       course_id: 1,
       user_id: 'usr_current',
-      user_name: 'دانش‌پژوه نمونه',
-      session_title: 'جلسه ۱: آشنایی با مبانی هوش مصنوعی و محیط پایتون',
+      user_name: 'حجت‌الله آهنگ',
+      session_title: 'جلسه ۱: معارفه و سرفصل‌ها',
       session_date: '۱۴۰۴/۰۶/۰۱',
       status: 'present',
       is_auto: true,
@@ -223,8 +308,8 @@ export const getAttendanceRecords = async (courseId: number, userId?: string): P
       id: 'att_2',
       course_id: 1,
       user_id: 'usr_current',
-      user_name: 'دانش‌پژوه نمونه',
-      session_title: 'جلسه ۲: آرایه‌ها در NumPy و ساختارهای داده',
+      user_name: 'حجت‌الله آهنگ',
+      session_title: 'جلسه ۲: متغیرها و لیست‌ها',
       session_date: '۱۴۰۴/۰۶/۰۸',
       status: 'absent',
       is_auto: false
@@ -233,15 +318,11 @@ export const getAttendanceRecords = async (courseId: number, userId?: string): P
   return all.filter(a => Number(a.course_id) === Number(courseId) && (!userId || a.user_id === userId || a.user_id === 'usr_current'));
 };
 
-/**
- * Record manual or auto attendance
- */
 export const recordAttendance = async (
   record: Omit<AttendanceRecord, 'id' | 'created_at'>
 ): Promise<{ success: boolean; record: AttendanceRecord; summary: CourseAttendanceSummary }> => {
   const all = getStorage<AttendanceRecord[]>('lms_attendance_records', []);
   
-  // Check if session record already exists for this user
   const existingIdx = all.findIndex(
     a => Number(a.course_id) === Number(record.course_id) && 
          a.user_id === record.user_id && 
@@ -262,21 +343,17 @@ export const recordAttendance = async (
 
   setStorage('lms_attendance_records', all);
 
-  // Recalculate summary and auto-drop if exceeds limit
   const summary = await getCourseAttendanceSummary(Number(record.course_id), record.user_id, record.user_name || 'کاربر');
   return { success: true, record: newRec, summary };
 };
 
-/**
- * Calculate automated absences summary and check auto-drop threshold
- */
 export const getCourseAttendanceSummary = async (
   courseId: number, 
   userId: string,
   userName = 'کاربر'
 ): Promise<CourseAttendanceSummary> => {
   const records = await getAttendanceRecords(courseId, userId);
-  const maxAllowed = 3; // Max absences allowed per course rule
+  const maxAllowed = 3;
 
   let present = 0;
   let absent = 0;
@@ -294,7 +371,6 @@ export const getCourseAttendanceSummary = async (
   const isDropped = absent > maxAllowed;
   const isWarning = absent === maxAllowed;
 
-  // Persist drop status in enrollment record
   if (isDropped) {
     const droppedList = getStorage<string[]>('lms_dropped_students', []);
     const key = `${courseId}_${userId}`;
@@ -307,7 +383,7 @@ export const getCourseAttendanceSummary = async (
     user_id: userId,
     user_name: userName,
     course_id: courseId,
-    total_sessions: total,
+    total_sessions: total || 1,
     present_count: present,
     absent_count: absent,
     justified_count: justified,
@@ -318,12 +394,31 @@ export const getCourseAttendanceSummary = async (
   };
 };
 
-/**
- * Check if a student is dropped from a course due to excessive absences
- */
 export const isStudentDropped = (courseId: number, userId: string): boolean => {
   const droppedList = getStorage<string[]>('lms_dropped_students', []);
-  return droppedList.includes(`${courseId}_${userId}`) || droppedList.includes(`${courseId}_usr_current`);
+  return droppedList.includes(`${courseId}_${userId}`);
+};
+
+export const reinstateDroppedStudent = (courseId: number, userId: string): void => {
+  const droppedList = getStorage<string[]>('lms_dropped_students', []);
+  setStorage('lms_dropped_students', droppedList.filter(k => k !== `${courseId}_${userId}`));
+};
+
+export const getAllCourseStudentsSummary = async (courseId: number): Promise<CourseAttendanceSummary[]> => {
+  const mockStudents = [
+    { id: 'usr_current', name: 'حجت‌الله آهنگ' },
+    { id: 'usr_2', name: 'محمدامین شمس' },
+    { id: 'usr_3', name: 'فاطمه حسینی' },
+    { id: 'usr_4', name: 'علیرضا رضایی' },
+    { id: 'usr_5', name: 'سمیه کریمی' }
+  ];
+
+  const results: CourseAttendanceSummary[] = [];
+  for (const s of mockStudents) {
+    const sum = await getCourseAttendanceSummary(courseId, s.id, s.name);
+    results.push(sum);
+  }
+  return results;
 };
 
 // -------------------------------------------------------------
@@ -355,18 +450,44 @@ export const submitAndAutoGradeExam = async (
   exam: Exam,
   userId: string,
   userName: string,
-  userAnswers: Record<string, number>,
+  userAnswers: Record<string, number | string>,
   courseTitle = 'دوره آموزشی'
-): Promise<{ submission: ExamSubmission; certificate?: Certificate }> => {
+): Promise<{ submission: ExamSubmission; certificate?: Certificate; error?: string }> => {
+  const submissions = getStorage<ExamSubmission[]>('lms_exam_submissions', DEFAULT_SUBMISSIONS);
+  
+  // Check previous attempts
+  const userPreviousAttempts = submissions.filter(
+    s => s.exam_id === exam.id && (s.user_id === userId || s.user_id === 'usr_current')
+  );
+  const maxAttempts = exam.max_attempts ?? 0;
+  if (maxAttempts > 0 && userPreviousAttempts.length >= maxAttempts) {
+    return {
+      submission: userPreviousAttempts[0],
+      error: `شما به سقف مجاز شرکت در این آزمون (${maxAttempts} بار) رسیده‌اید.`
+    };
+  }
+
   let earnedScore = 0;
   let totalScore = 0;
 
   exam.questions.forEach(q => {
     const qScore = q.score || 5;
     totalScore += qScore;
-    const selected = userAnswers[q.id];
-    if (selected !== undefined && selected === q.correct_index) {
-      earnedScore += qScore;
+    const answer = userAnswers[q.id];
+
+    if (q.type === 'descriptive') {
+      // For descriptive questions: if the student provided a thoughtful answer (>15 chars)
+      if (typeof answer === 'string' && answer.trim().length > 15) {
+        earnedScore += qScore;
+      } else if (typeof answer === 'string' && answer.trim().length > 0) {
+        earnedScore += Math.round(qScore * 0.7);
+      }
+    } else {
+      // Multiple choice question
+      const selected = typeof answer === 'number' ? answer : parseInt(answer as string, 10);
+      if (selected !== undefined && selected === q.correct_index) {
+        earnedScore += qScore;
+      }
     }
   });
 
@@ -384,11 +505,11 @@ export const submitAndAutoGradeExam = async (
     total_score: totalScore,
     percentage: percentage,
     status: isPassed ? 'passed' : 'failed',
-    submitted_at: new Date().toISOString()
+    submitted_at: new Intl.DateTimeFormat('fa-IR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()),
+    attempt_number: userPreviousAttempts.length + 1
   };
 
   // Save submission
-  const submissions = getStorage<ExamSubmission[]>('lms_exam_submissions', []);
   setStorage('lms_exam_submissions', [submission, ...submissions]);
 
   // If passed, trigger AUTOMATIC CERTIFICATE ISSUANCE!
@@ -410,8 +531,13 @@ export const submitAndAutoGradeExam = async (
 };
 
 export const getStudentSubmissions = async (userId: string, courseId?: number): Promise<ExamSubmission[]> => {
-  const submissions = getStorage<ExamSubmission[]>('lms_exam_submissions', []);
+  const submissions = getStorage<ExamSubmission[]>('lms_exam_submissions', DEFAULT_SUBMISSIONS);
   return submissions.filter(s => (s.user_id === userId || s.user_id === 'usr_current') && (!courseId || Number(s.course_id) === Number(courseId)));
+};
+
+export const getCourseSubmissions = async (courseId: number): Promise<ExamSubmission[]> => {
+  const submissions = getStorage<ExamSubmission[]>('lms_exam_submissions', DEFAULT_SUBMISSIONS);
+  return submissions.filter(s => Number(s.course_id) === Number(courseId));
 };
 
 // -------------------------------------------------------------
@@ -513,7 +639,7 @@ export const getCourseLiveSessions = async (courseId: number): Promise<LiveSessi
       }
     }
   } catch (err: any) {
-    console.warn('API get live sessions failed:', err.message);
+    // Fallback to storage
   }
   const sessions = getStorage<LiveSession[]>('lms_live_sessions', DEFAULT_LIVE_SESSIONS);
   return sessions.filter(s => Number(s.course_id) === Number(courseId));
@@ -543,7 +669,7 @@ export const createLiveSession = async (
       return { success: true, session: data };
     }
   } catch (err: any) {
-    console.warn('API create live session failed:', err.message);
+    // Local fallback
   }
 
   const newSession: LiveSession = {
@@ -565,7 +691,7 @@ export const deleteLiveSession = async (sessionId: string | number): Promise<{ s
   try {
     await fetch(`/api/live_sessions/${sessionId}`, { method: 'DELETE' });
   } catch (err: any) {
-    console.warn('API delete live session failed:', err.message);
+    // Local fallback
   }
   const sessions = getStorage<LiveSession[]>('lms_live_sessions', DEFAULT_LIVE_SESSIONS);
   setStorage('lms_live_sessions', sessions.filter(s => String(s.id) !== String(sessionId)));
@@ -577,7 +703,6 @@ export const joinLiveClassAndCheckIn = async (
   userId: string,
   userName: string
 ): Promise<{ success: boolean; attendanceRecord: AttendanceRecord }> => {
-  // Automatically register student presence when entering online room
   const result = await recordAttendance({
     course_id: session.course_id,
     user_id: userId,

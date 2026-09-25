@@ -79,9 +79,11 @@ export interface CourseAttendanceSummary {
 
 export interface ExamQuestion {
   id: string;
+  type?: 'multiple_choice' | 'descriptive';
   question: string;
-  options: string[];
-  correct_index: number;
+  options?: string[]; // for multiple choice
+  correct_index?: number; // for multiple choice
+  sample_answer?: string; // for descriptive question guide / model answer
   score: number;
 }
 
@@ -93,6 +95,7 @@ export interface Exam {
   duration_minutes: number;
   passing_score: number;
   total_score: number;
+  max_attempts?: number; // 1, 2, 3, 5, or 0 (unlimited)
   questions: ExamQuestion[];
   is_active: boolean;
   created_at?: string;
@@ -104,12 +107,13 @@ export interface ExamSubmission {
   course_id: number;
   user_id: string;
   user_name: string;
-  answers: Record<string, number>;
+  answers: Record<string, number | string>; // option index for multiple choice or text for descriptive
   score: number;
   total_score: number;
   percentage: number;
-  status: 'passed' | 'failed';
+  status: 'passed' | 'failed' | 'pending_review';
   submitted_at: string;
+  attempt_number?: number;
 }
 
 export interface Certificate {

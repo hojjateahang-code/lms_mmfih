@@ -131,11 +131,12 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
   };
 
   const handleDeleteChapter = async (chapterId: number, title: string) => {
+    setSessions(prev => prev.filter(s => s.id !== chapterId));
+    setOpenSessionMenu(null);
     const { deleteChapter } = await import('../../services/courseService');
     const res = await deleteChapter(chapterId);
     if (res.success) {
-      triggerSuccess(`فصل «${title}» حذف گردید.`);
-      setOpenSessionMenu(null);
+      triggerSuccess(`فصل «${title}» با موفقیت حذف گردید.`);
       await fetchContent();
     }
   };
@@ -757,6 +758,7 @@ export default function CourseDashboard({ courseId = 1, onBack }: CourseDashboar
                 duration_minutes: parseInt(quizData.duration) || 20,
                 passing_score: parseInt(quizData.passScore) || 12,
                 total_score: quizData.totalScore || 20,
+                max_attempts: quizData.maxAttempts || 0,
                 is_active: true,
                 questions: quizData.questions || []
               });
