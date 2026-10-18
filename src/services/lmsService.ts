@@ -7,7 +7,9 @@ import {
   ExamSubmission, 
   Certificate, 
   LiveSession,
-  AttendanceStatus 
+  AttendanceStatus,
+  QuestionBankItem,
+  Category
 } from '../types';
 
 /**
@@ -27,9 +29,9 @@ export const getCourseExams = async (courseId: number): Promise<Exam[]> => {
 };
 
 /**
- * Create or update an exam in unified backend
+ * Create an exam in unified backend (with option to persist questions in Question Bank)
  */
-export const createExam = async (exam: Partial<Exam>): Promise<{ success: boolean; data?: Exam; error?: string }> => {
+export const createExam = async (exam: Partial<Exam> & { save_to_question_bank?: boolean }): Promise<{ success: boolean; data?: Exam; error?: string }> => {
   try {
     const res = await fetch('/api/exams', {
       method: 'POST',
@@ -49,6 +51,48 @@ export const createExam = async (exam: Partial<Exam>): Promise<{ success: boolea
 };
 
 /**
+ * Update an existing exam
+ */
+export const updateExam = async (examId: string, exam: Partial<Exam>): Promise<{ success: boolean; data?: Exam; error?: string }> => {
+  try {
+    const res = await fetch(`/api/exams/${examId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(exam),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, data };
+    }
+    const err = await res.json().catch(() => ({}));
+    return { success: false, error: err.error || 'خطا در ویرایش آزمون' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Duplicate an existing exam
+ */
+export const duplicateExam = async (examId: string): Promise<{ success: boolean; data?: Exam; error?: string }> => {
+  try {
+    const res = await fetch(`/api/exams/${examId}/duplicate`, {
+      method: 'POST',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, data };
+    }
+    const err = await res.json().catch(() => ({}));
+    return { success: false, error: err.error || 'خطا در تکثیر آزمون' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * Delete an exam
  */
 export const deleteExam = async (examId: string): Promise<{ success: boolean; error?: string }> => {
@@ -62,13 +106,92 @@ export const deleteExam = async (examId: string): Promise<{ success: boolean; er
 };
 
 /**
+ * Question Bank APIs
+ */
+export const getQuestionBank = async (params?: { course_id?: number; difficulty?: string; type?: string; search?: string }): Promise<QuestionBankItem[]> => {
+  try {
+    const q = new URLSearchParams();
+    if (params?.course_id) q.set('course_id', String(params.course_id));
+    if (params?.difficulty && params.difficulty !== 'all') q.set('difficulty', params.difficulty);
+    if (params?.type && params.type !== 'all') q.set('type', params.type);
+    if (params?.search) q.set('search', params.search);
+
+    const res = await fetch(`/api/question-bank?${q.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const addQuestionToBank = async (question: Partial<QuestionBankItem>): Promise<{ success: boolean; data?: QuestionBankItem; error?: string }> => {
+  try {
+    const res = await fetch('/api/question-bank', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(question),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, data };
+    }
+    const err = await res.json().catch(() => ({}));
+    return { success: false, error: err.error || 'خطا در افزودن سوال به بانک' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const deleteQuestionFromBank = async (id: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const res = await fetch(`/api/question-bank/${id}`, { method: 'DELETE' });
+    return { success: res.ok };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const autoGenerateExamFromBank = async (config: {
+  course_id: number;
+  title: string;
+  description?: string;
+  duration_minutes?: number;
+  passing_score?: number;
+  easy_count?: number;
+  medium_count?: number;
+  hard_count?: number;
+  mc_count?: number;
+  desc_count?: number;
+  random_per_student?: boolean;
+}): Promise<{ success: boolean; data?: Exam; error?: string }> => {
+  try {
+    const res = await fetch('/api/question-bank/auto-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, data };
+    }
+    return { success: false, error: data.error || 'خطا در طراحی خودکار آزمون' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * Submit exam, evaluate score, and record into unified database
  */
 export const submitAndAutoGradeExam = async (
   exam: Exam,
   userId: string,
   userName: string,
-  answers: Record<string, number | string>
+  answers: Record<string, number | string>,
+  courseTitle?: string
 ): Promise<{
   success: boolean;
   submission?: ExamSubmission;
@@ -87,6 +210,7 @@ export const submitAndAutoGradeExam = async (
         userName,
         answers,
         courseId: exam.course_id,
+        courseTitle,
       }),
     });
 
@@ -125,12 +249,16 @@ export const submitAndAutoGradeExam = async (
 /**
  * Get all exam submissions of a user
  */
-export const getStudentSubmissions = async (userId: string): Promise<ExamSubmission[]> => {
+export const getStudentSubmissions = async (userId: string, courseId?: number): Promise<ExamSubmission[]> => {
   try {
     const res = await fetch(`/api/submissions/user/${encodeURIComponent(userId)}`);
     if (res.ok) {
       const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      let list: ExamSubmission[] = Array.isArray(data) ? data : [];
+      if (courseId) {
+        list = list.filter((s) => Number(s.course_id) === Number(courseId));
+      }
+      return list;
     }
     return [];
   } catch (e) {
@@ -203,57 +331,60 @@ export const verifyCertificate = async (code: string): Promise<{ valid: boolean;
 };
 
 /**
- * Attendance records for a course
+ * Connected real attendance for course
  */
-export const getCourseAttendance = async (courseId: number, userId?: string): Promise<AttendanceRecord[]> => {
+export interface CourseAttendanceDetails {
+  records: AttendanceRecord[];
+  sessions: LiveSession[];
+  enrolledStudents: { userId: string; userName: string; avatarUrl?: string; enrolledAt?: string }[];
+  summary: CourseAttendanceSummary[];
+}
+
+export const getCourseAttendanceDetails = async (courseId: number, userId?: string): Promise<CourseAttendanceDetails> => {
   try {
     const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
     const res = await fetch(`/api/courses/${courseId}/attendance${query}`);
     if (res.ok) {
       const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      return {
+        records: Array.isArray(data.records) ? data.records : (Array.isArray(data) ? data : []),
+        sessions: Array.isArray(data.sessions) ? data.sessions : [],
+        enrolledStudents: Array.isArray(data.enrolledStudents) ? data.enrolledStudents : [],
+        summary: Array.isArray(data.summary) ? data.summary : [],
+      };
     }
-    return [];
+    return { records: [], sessions: [], enrolledStudents: [], summary: [] };
   } catch (e) {
-    return [];
+    return { records: [], sessions: [], enrolledStudents: [], summary: [] };
   }
 };
 
-/**
- * Get attendance summary
- */
+export const getCourseAttendance = async (courseId: number, userId?: string): Promise<AttendanceRecord[]> => {
+  const details = await getCourseAttendanceDetails(courseId, userId);
+  return details.records;
+};
+
 export const getCourseAttendanceSummary = async (
   courseId: number,
   userId: string,
   userName: string
 ): Promise<CourseAttendanceSummary> => {
-  const records = await getCourseAttendance(courseId, userId);
-  const presentCount = records.filter(r => r.status === 'present').length;
-  const absentCount = records.filter(r => r.status === 'absent').length;
-  const justifiedCount = records.filter(r => r.status === 'justified').length;
-  const tardyCount = records.filter(r => r.status === 'tardy').length;
-  const totalSessions = Math.max(records.length, 1);
-  const maxAllowedAbsences = 3;
-
-  const isDropped = absentCount >= maxAllowedAbsences;
-  const status: CourseAttendanceSummary['status'] = isDropped 
-    ? 'dropped_absence' 
-    : absentCount >= maxAllowedAbsences - 1 
-      ? 'warning' 
-      : 'active';
+  const details = await getCourseAttendanceDetails(courseId, userId);
+  const found = details.summary.find((s) => String(s.user_id) === String(userId));
+  if (found) return found;
 
   return {
     user_id: userId,
     user_name: userName,
     course_id: courseId,
-    total_sessions: totalSessions,
-    present_count: presentCount,
-    absent_count: absentCount,
-    justified_count: justifiedCount,
-    tardy_count: tardyCount,
-    max_allowed_absences: maxAllowedAbsences,
-    status,
-    is_dropped: isDropped
+    total_sessions: details.sessions.length || 1,
+    present_count: details.records.filter((r) => String(r.user_id) === String(userId) && r.status === 'present').length,
+    absent_count: details.records.filter((r) => String(r.user_id) === String(userId) && r.status === 'absent').length,
+    justified_count: details.records.filter((r) => String(r.user_id) === String(userId) && r.status === 'justified').length,
+    tardy_count: details.records.filter((r) => String(r.user_id) === String(userId) && r.status === 'tardy').length,
+    max_allowed_absences: 3,
+    status: 'active',
+    is_dropped: false,
   };
 };
 
@@ -268,7 +399,8 @@ export const recordAttendance = async (
   sessionDate: string,
   status: AttendanceStatus,
   isAuto: boolean = false,
-  durationMinutes: number = 0
+  durationMinutes: number = 0,
+  sessionId?: number | string
 ): Promise<{ success: boolean; record?: AttendanceRecord }> => {
   try {
     const res = await fetch(`/api/courses/${courseId}/attendance`, {
@@ -282,6 +414,7 @@ export const recordAttendance = async (
         status,
         isAuto,
         durationMinutes,
+        sessionId,
       }),
     });
 
@@ -300,7 +433,7 @@ export const isStudentDropped = (_courseId: number, _userId: string): boolean =>
 };
 
 /**
- * Live sessions
+ * Live Sessions & Online Classes
  */
 export const getCourseLiveSessions = async (courseId: number): Promise<LiveSession[]> => {
   try {
@@ -337,7 +470,7 @@ export const createCourseLiveSession = async (
   }
 };
 
-export const deleteCourseLiveSession = async (sessionId: number): Promise<{ success: boolean; error?: string }> => {
+export const deleteCourseLiveSession = async (sessionId: number | string): Promise<{ success: boolean; error?: string }> => {
   try {
     const res = await fetch(`/api/live_sessions/${sessionId}`, { method: 'DELETE' });
     if (res.ok) return { success: true };
@@ -346,13 +479,107 @@ export const deleteCourseLiveSession = async (sessionId: number): Promise<{ succ
     return { success: false, error: err.message };
   }
 };
+export const deleteLiveSession = deleteCourseLiveSession;
 
-// Aliases for component compatibility
+export const startLiveSession = async (sessionId: number | string): Promise<{ success: boolean; session?: LiveSession; error?: string }> => {
+  try {
+    const res = await fetch(`/api/live_sessions/${sessionId}/start`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) return { success: true, session: data.session };
+    return { success: false, error: data.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const endLiveSession = async (sessionId: number | string): Promise<{ success: boolean; session?: LiveSession; error?: string }> => {
+  try {
+    const res = await fetch(`/api/live_sessions/${sessionId}/end`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) return { success: true, session: data.session };
+    return { success: false, error: data.error };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const joinLiveClassAndCheckIn = async (session: LiveSession, userId: string, userName: string) => {
+  try {
+    const res = await fetch(`/api/live_sessions/${session.id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, userName }),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {}
+
+  return await recordAttendance(
+    Number(session.course_id),
+    userId,
+    userName,
+    session.title,
+    new Date().toLocaleDateString('fa-IR'),
+    'present',
+    true,
+    60,
+    session.id
+  );
+};
+
+/**
+ * Favorites
+ */
+export const getUserFavorites = async (userId: string): Promise<number[]> => {
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/favorites`);
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const toggleCourseFavorite = async (userId: string, courseId: number | string): Promise<{ success: boolean; isFavorite?: boolean }> => {
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/favorites/${courseId}`, {
+      method: 'POST',
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return { success: false };
+  } catch (e) {
+    return { success: false };
+  }
+};
+
+/**
+ * Course Categories
+ */
+export const getCourseCategories = async (): Promise<Category[]> => {
+  try {
+    const res = await fetch('/api/courses/categories');
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+};
+
+// Aliases for compatibility
 export const getAcademicRecords = getStudentPastRecords;
 export const getAttendanceRecords = getCourseAttendance;
 export const createLiveSession = createCourseLiveSession;
 
-export const addAcademicRecord = async (record: Partial<AcademicRecord>): Promise<{ success: boolean; data?: AcademicRecord }> => {
+export const addAcademicRecord = async (record: Partial<AcademicRecord>): Promise<{ success: boolean; data?: AcademicRecord; error?: string }> => {
   try {
     const res = await fetch('/api/academic-records', {
       method: 'POST',
@@ -363,11 +590,8 @@ export const addAcademicRecord = async (record: Partial<AcademicRecord>): Promis
       const data = await res.json();
       return { success: true, data };
     }
-  } catch (e) {}
-  return { success: true };
+    return { success: false, error: 'خطا در ثبت سابقه' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 };
-
-export const joinLiveClassAndCheckIn = async (session: LiveSession, userId: string, userName: string) => {
-  return await recordAttendance(session.course_id, userId, userName, session.title, new Date().toLocaleDateString('fa-IR'), 'present', true, 60);
-};
-

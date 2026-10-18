@@ -17,22 +17,27 @@ import {
   GraduationCap,
   Award,
   CalendarCheck,
-  FileCheck
+  FileCheck,
+  Trash2,
+  BookOpen
 } from 'lucide-react';
 import WalletScreen from './WalletScreen';
 import TicketChat from '../support/TicketChat';
-import { UserProfile, Certificate } from '../../types';
+import { UserProfile, Certificate, Course } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import PastRecordsModal from '../../components/lms/PastRecordsModal';
 import CertificateViewerModal from '../../components/lms/CertificateViewerModal';
 import { updateUserProfile } from '../../services/userService';
+import { getUserFavorites, toggleCourseFavorite } from '../../services/lmsService';
+import { getPublishedCourses } from '../../services/courseService';
 
 interface StudentProfileProps {
   user?: any;
+  onSelectCourse?: (course: Course) => void;
 }
 
-export default function StudentProfile({ user }: StudentProfileProps) {
-  const { loginManager, logout, role } = useAuth();
+export default function StudentProfile({ user, onSelectCourse }: StudentProfileProps) {
+  const { loginManager, logout, role, refreshUser } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -54,6 +59,22 @@ export default function StudentProfile({ user }: StudentProfileProps) {
   // LMS Modals
   const [showPastRecords, setShowPastRecords] = useState(false);
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
+  const [favoriteCourses, setFavoriteCourses] = useState<any[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+
+  const loadFavoritesList = async () => {
+    if (!user?.id) return;
+    setLoadingFavorites(true);
+    const [favIds, allCoursesRes] = await Promise.all([
+      getUserFavorites(user.id),
+      getPublishedCourses()
+    ]);
+    if (allCoursesRes.success && allCoursesRes.data) {
+      const filtered = allCoursesRes.data.filter((c: any) => favIds.includes(Number(c.id)));
+      setFavoriteCourses(filtered);
+    }
+    setLoadingFavorites(false);
+  };
 
   if (showWallet) {
     return <WalletScreen onBack={() => setShowWallet(false)} />;
@@ -70,6 +91,9 @@ export default function StudentProfile({ user }: StudentProfileProps) {
       setShowTickets(true);
     } else if (id === 'past_records' || id === 'certificates') {
       setShowPastRecords(true);
+    } else if (id === 'favorites') {
+      loadFavoritesList();
+      setActiveModal('favorites');
     } else {
       setActiveModal(id);
     }
@@ -276,18 +300,104 @@ export default function StudentProfile({ user }: StudentProfileProps) {
               </div>
             )}
 
-            {activeModal !== 'edit' && (
+            {activeModal === 'favorites' ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <h3 className="font-black text-sm text-slate-800 flex items-center gap-1.5">
+                    <Heart size={16} className="text-rose-500 fill-rose-500" />
+                    <span>دوره‌های مورد علاقه من ({favoriteCourses.length})</span>
+                  </h3>
+                  <button onClick={() => setActiveModal(null)} className="text-xs text-slate-400 hover:text-slate-600 font-bold">
+                    ✕
+                  </button>
+                </div>
+
+                {loadingFavorites ? (
+                  <div className="py-8 text-center text-xs text-slate-400">در حال بارگذاری دوره‌های منتخب...</div>
+                ) : favoriteCourses.length === 0 ? (
+                  <div className="py-8 text-center space-y-2">
+                    <Heart size={32} className="mx-auto text-slate-300" />
+                    <p className="text-xs text-slate-500 font-bold">هنوز دوره‌ای را به علاقه‌مندی‌ها اضافه نکرده‌اید.</p>
+                    <p className="text-[11px] text-slate-400">با زدن آیکون قلب روی هر دوره در صفحه اصلی، آن را به این بخش بیفزایید.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-[60vh] overflow-y-auto">
+                    {favoriteCourses.map((c) => (
+                      <div
+                        key={c.id}
+                        className="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-2.5"
+                      >
+                        <div
+                          className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
+                          onClick={() => {
+                            setActiveModal(null);
+                            onSelectCourse?.({
+                              id: String(c.id),
+                              title: c.title,
+                              instructor: c.instructor_name || 'استاد محترم',
+                              category_id: 1,
+                              category_name: c.category || 'عمومی',
+                              price: c.price,
+                              original_price: c.price,
+                              is_new: false,
+                              rating: 5.0,
+                              students_count: c.students_count || 0,
+                              episodes_count: 0,
+                              duration: c.duration || '۱۲ ساعت',
+                              level: 'عمومی',
+                              description: c.description || '',
+                              banner_url: c.cover_url || '',
+                              is_free: c.price === 0,
+                            });
+                          }}
+                        >
+                          <img
+                            src={c.cover_url || 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?q=80&w=600&auto=format&fit=crop'}
+                            alt={c.title}
+                            className="w-12 h-12 rounded-xl object-cover shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-xs font-bold text-slate-800 truncate">{c.title}</h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{c.instructor_name || 'استاد محترم'}</p>
+                            <span className="text-[10px] text-indigo-600 font-bold">
+                              {c.price === 0 ? 'رایگان' : `${(c.price || 0).toLocaleString('fa-IR')} تومان`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            if (!user?.id) return;
+                            await toggleCourseFavorite(user.id, Number(c.id));
+                            setFavoriteCourses(favoriteCourses.filter((fc) => fc.id !== c.id));
+                          }}
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition cursor-pointer shrink-0"
+                          title="حذف از علاقه‌مندی‌ها"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2.5 rounded-xl transition"
+                >
+                  بستن پنجره
+                </button>
+              </div>
+            ) : activeModal !== 'edit' ? (
               <>
                 <h3 className="font-black text-sm text-slate-800">
                   {activeModal === 'rules' && 'آیین‌نامه انضباطی و سقف غیبت'}
                   {activeModal === 'settings' && 'تنظیمات اعلان‌ها'}
-                  {activeModal === 'favorites' && 'دوره‌های مورد علاقه'}
                   {activeModal === 'support_call' && 'تماس با پشتیبانی آموزش'}
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
                   {activeModal === 'rules' && 'سقف غیبت مجاز در دوره‌ها ۳ جلسه است. در صورت غیبت چهارم، دسترسی به دوره و آزمون به‌صورت خودکار سلب می‌گردد.'}
                   {activeModal === 'settings' && 'اعلان‌های آغاز کلاس آنلاین و آزمون‌ها به صورت پیش‌فرض فعال است.'}
-                  {activeModal === 'favorites' && 'دوره‌های منتخب شما در این بخش نگهداری می‌شوند.'}
                   {activeModal === 'support_call' && 'شماره تماس مستقیم سامانه: ۰۲۱۹۱۰۹۰۳۶۲ (پاسخگویی ۸ الی ۱۶)'}
                 </p>
                 <button
@@ -297,7 +407,7 @@ export default function StudentProfile({ user }: StudentProfileProps) {
                   متوجه شدم
                 </button>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       )}

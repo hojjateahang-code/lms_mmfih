@@ -1,9 +1,10 @@
 // src/components/layout/BottomNav.tsx
 import React from 'react';
-import { Home, Search, GraduationCap, User, Users, PlusCircle, CreditCard, BookOpen } from 'lucide-react';
+import { Home, Search, GraduationCap, User, Users, PlusCircle, CreditCard, BookOpen, Headphones, CalendarCheck, HelpCircle } from 'lucide-react';
+import { UserRole } from '../../types';
 
 interface BottomNavProps {
-  role: 'student' | 'executive_manager' | 'teacher';
+  role: UserRole | string | null;
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
@@ -14,15 +15,24 @@ export default function BottomNav({ role, activeTab, setActiveTab }: BottomNavPr
     { id: 'home', label: 'خانه', icon: Home },
     { id: 'search', label: 'جستجو', icon: Search },
     { id: 'my_courses', label: 'دوره‌های من', icon: GraduationCap },
+    { id: 'support', label: 'پشتیبانی', icon: Headphones },
     { id: 'profile', label: 'پروفایل', icon: User },
   ];
 
-  // تب‌های مدیر اجرایی
-  const managerTabs = [
+  // تب‌های مدیر کل
+  const executiveTabs = [
     { id: 'courses', label: 'دوره‌ها', icon: BookOpen },
     { id: 'users', label: 'کاربران', icon: Users },
-    { id: 'create_course', label: 'ایجاد دوره', icon: PlusCircle },
+    { id: 'support', label: 'پشتیبانی', icon: Headphones },
     { id: 'financial', label: 'مالی', icon: CreditCard },
+    { id: 'profile', label: 'پروفایل', icon: User },
+  ];
+
+  // تب‌های مسئول دوره
+  const courseManagerTabs = [
+    { id: 'courses', label: 'دوره‌ها', icon: BookOpen },
+    { id: 'attendance', label: 'حضور و غیاب', icon: CalendarCheck },
+    { id: 'support', label: 'پشتیبانی', icon: Headphones },
     { id: 'profile', label: 'پروفایل', icon: User },
   ];
 
@@ -30,11 +40,14 @@ export default function BottomNav({ role, activeTab, setActiveTab }: BottomNavPr
   const teacherTabs = [
     { id: 'teacher_courses', label: 'کلاس‌های من', icon: BookOpen },
     { id: 'create_course', label: 'ایجاد دوره', icon: PlusCircle },
-    { id: 'exams', label: 'آزمون‌ها', icon: Users },
+    { id: 'exams', label: 'بانک سوال و آزمون', icon: HelpCircle },
     { id: 'profile', label: 'پروفایل', icon: User },
   ];
 
-  const tabs = (role === 'student' || !role) ? studentTabs : (role === 'teacher' ? teacherTabs : managerTabs);
+  let tabs = studentTabs;
+  if (role === 'teacher') tabs = teacherTabs;
+  else if (role === 'course_manager') tabs = courseManagerTabs;
+  else if (role === 'executive_manager') tabs = executiveTabs;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-30 px-2.5 pb-3.5 pt-1 pointer-events-none">
@@ -46,18 +59,18 @@ export default function BottomNav({ role, activeTab, setActiveTab }: BottomNavPr
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center transition-all duration-300 py-1.5 px-2.5 rounded-full ${
+              className={`flex flex-col items-center justify-center transition-all duration-300 py-1.5 px-2 rounded-full ${
                 isActive
                   ? 'bg-indigo-100/80 text-indigo-700 font-black shadow-inner border border-indigo-200/50 scale-100'
                   : 'text-slate-600 hover:text-slate-900 font-bold opacity-80 hover:opacity-100'
               }`}
             >
               <Icon
-                size={19}
+                size={18}
                 strokeWidth={isActive ? 2.5 : 2}
                 className={`transition-transform duration-300 ${isActive ? 'mb-0.5 text-indigo-600 scale-110' : 'mb-0.5'}`}
               />
-              <span className={`text-[9.5px] whitespace-nowrap leading-tight ${isActive ? 'text-indigo-700 font-black' : 'text-slate-600 font-bold'}`}>
+              <span className={`text-[9px] whitespace-nowrap leading-tight ${isActive ? 'text-indigo-700 font-black' : 'text-slate-600 font-bold'}`}>
                 {tab.label}
               </span>
             </button>

@@ -24,6 +24,9 @@ interface UnifiedDatabase {
   certificates: any[];
   live_sessions: any[];
   transactions: any[];
+  question_bank: any[];
+  support_tickets: any[];
+  favorites: any[];
 }
 
 const DEFAULT_DB_DATA: UnifiedDatabase = {
@@ -363,6 +366,145 @@ const DEFAULT_DB_DATA: UnifiedDatabase = {
       created_at: new Date().toISOString(),
     },
   ],
+  question_bank: [
+    {
+      id: "qb_1",
+      course_id: 1,
+      course_title: "دوره جامع هوش مصنوعی و پایتون",
+      type: "multiple_choice",
+      question: "کدام کتابخانه پایتون اساساً برای پردازش آرایه‌های عددی چندبعدی و جبر خطی کاربرد دارد؟",
+      options: ["NumPy", "Pandas", "Matplotlib", "Flask"],
+      correct_index: 0,
+      difficulty: "easy",
+      tag: "پایتون مقدماتی",
+      score: 5,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "qb_2",
+      course_id: 1,
+      course_title: "دوره جامع هوش مصنوعی و پایتون",
+      type: "multiple_choice",
+      question: "پدیده بیش‌برازش (Overfitting) چه زمانی در مدل‌های یادگیری ماشین رخ می‌دهد؟",
+      options: [
+        "زمانی که مدل داده‌های آموزشی را حفظ کند و روی داده‌های تست تعمیم‌پذیری پایینی داشته باشد",
+        "زمانی که تعداد داده‌های آموزشی بسیار کم باشد",
+        "وقتی نرخ یادگیری بیش از اندازه بالا تنظیم شود",
+        "زمانی که دقت مدل در هر دو مرحله تست و آموزش صفر باشد",
+      ],
+      correct_index: 0,
+      difficulty: "medium",
+      tag: "مفاهیم یادگیری ماشین",
+      score: 5,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "qb_3",
+      course_id: 1,
+      course_title: "دوره جامع هوش مصنوعی و پایتون",
+      type: "multiple_choice",
+      question: "در شبکه عصبی کانولوشنی (CNN)، وظیفه لایه Pooling چیست؟",
+      options: [
+        "کاهش ابعاد فضایی نقشه ویژگی‌ها و کنترل بیش‌برازش",
+        "افزایش تعداد کانال‌های تصویر ورودی",
+        "محاسبه مشتق معکوس وزن‌ها",
+        "تولید تصاویر تصادفی جهت تقویت داده‌ها",
+      ],
+      correct_index: 0,
+      difficulty: "hard",
+      tag: "یادگیری عمیق",
+      score: 5,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "qb_4",
+      course_id: 1,
+      course_title: "دوره جامع هوش مصنوعی و پایتون",
+      type: "descriptive",
+      question: "تفاوت یادگیری نظارت‌شده (Supervised Learning) و بدون نظارت (Unsupervised Learning) را با دو مثال کاربردی شرح دهید.",
+      sample_answer: "در یادگیری نظارت‌شده داده‌ها برچسب‌دار هستند مانند طبقه‌بندی ایمیل، در حالی که در بدون نظارت داده‌ها بدون برچسب بوده و سیستم خوشه‌بندی انجام می‌دهد.",
+      difficulty: "easy",
+      tag: "مفاهیم پایه",
+      score: 10,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "qb_5",
+      course_id: 1,
+      course_title: "دوره جامع هوش مصنوعی و پایتون",
+      type: "descriptive",
+      question: "نقش تابع فعال‌ساز (Activation Function) غیرخطی نظیر ReLU در لایه‌های پنهان شبکه‌های عصبی عمیق را تحلیل نمایید.",
+      sample_answer: "توابع فعال‌ساز غیرخطی امکان مدل‌سازی روابط پیچیده را فراهم کرده و از خطی شدن کل شبکه عصبی جلوگیری می‌کنند.",
+      difficulty: "hard",
+      tag: "معماری شبکه‌ها",
+      score: 10,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "qb_6",
+      course_id: 3,
+      course_title: "فقه المعاملات و اقتصاد اسلامی نوین",
+      type: "multiple_choice",
+      question: "شرط صحت معامله در بیع کالی به کالی از نظر اکثر فقهای امامیه چیست؟",
+      options: [
+        "باطل است و بیع دین به دین محسوب می‌شود",
+        "صحیح است به شرط قبض در مجلس",
+        "مکروه است ولی عقد لازم‌الوفا است",
+        "منوط به اذن حاکم شرع است",
+      ],
+      correct_index: 0,
+      difficulty: "medium",
+      tag: "احکام بیع",
+      score: 5,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "qb_7",
+      course_id: 3,
+      course_title: "فقه المعاملات و اقتصاد اسلامی نوین",
+      type: "descriptive",
+      question: "ماهیت فقهی عقود نوین مضاربه و جعاله در خدمات بانکی را تبیین کرده و نقطه افتراق آنها از ربا را شرح دهید.",
+      sample_answer: "در عقود اسلامی مانند مضاربه، سود قطعی تضمین نمی‌شود و هر دو طرف در سود و زیان واقعی مشارکت دارند.",
+      difficulty: "hard",
+      tag: "اقتصاد اسلامی",
+      score: 10,
+      created_at: new Date().toISOString(),
+    },
+  ],
+  support_tickets: [
+    {
+      id: "tkt_1",
+      user_id: "usr_current",
+      user_name: "حجت‌الله آهنگ",
+      subject: "درخواست استعلام گواهی دوره هوش مصنوعی",
+      category: "آموزش و مدارک",
+      status: "answered",
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      updated_at: new Date().toISOString(),
+      messages: [
+        {
+          id: "msg_1",
+          sender_id: "usr_current",
+          sender_name: "حجت‌الله آهنگ",
+          text: "با سلام و احترام، آزمون دوره را با موفقیت گذراندم. آیا مدرک من ثبت نهایی شده است؟",
+          is_admin: false,
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: "msg_2",
+          sender_id: "admin-999",
+          sender_name: "پشتیبانی آموزش",
+          text: "سلام دانش‌پژوه گرامی. بله، کارنامه و گواهی الکترونیک شما با کد رهگیری اختصاصی صادر شده و در تب کارنامه‌های پروفایل قابل دانلود است.",
+          is_admin: true,
+          created_at: new Date(Date.now() - 43200000).toISOString(),
+        },
+      ],
+    },
+  ],
+  favorites: [
+    { user_id: "usr_current", course_id: 1, created_at: new Date().toISOString() },
+    { user_id: "usr_current", course_id: 3, created_at: new Date().toISOString() },
+  ],
 };
 
 async function startServer() {
@@ -403,6 +545,9 @@ async function startServer() {
         certificates: parsed.certificates ?? DEFAULT_DB_DATA.certificates,
         live_sessions: parsed.live_sessions ?? DEFAULT_DB_DATA.live_sessions,
         transactions: parsed.transactions ?? DEFAULT_DB_DATA.transactions,
+        question_bank: parsed.question_bank?.length ? parsed.question_bank : DEFAULT_DB_DATA.question_bank,
+        support_tickets: parsed.support_tickets?.length ? parsed.support_tickets : DEFAULT_DB_DATA.support_tickets,
+        favorites: parsed.favorites ?? DEFAULT_DB_DATA.favorites,
       };
     } else {
       fs.writeFileSync(dbFilePath, JSON.stringify(unifiedDb, null, 2), "utf-8");
@@ -823,6 +968,39 @@ async function startServer() {
     return res.json(unifiedDb.profiles[index]);
   });
 
+  app.put("/api/users/:id/role", (req, res) => {
+    const { id } = req.params;
+    const { role } = req.body;
+    const index = unifiedDb.profiles.findIndex((p) => p.id === id || p.eitaa_id === id);
+    if (index === -1) return res.status(404).json({ error: "User not found" });
+
+    unifiedDb.profiles[index].role = role;
+    saveDb();
+    return res.json({ success: true, user: unifiedDb.profiles[index] });
+  });
+
+  app.delete("/api/users/:id", (req, res) => {
+    const { id } = req.params;
+    const initialCount = unifiedDb.profiles.length;
+    unifiedDb.profiles = unifiedDb.profiles.filter((p) => p.id !== id && p.eitaa_id !== id);
+    
+    if (unifiedDb.profiles.length === initialCount) {
+      return res.status(404).json({ error: "کاربر یافت نشد" });
+    }
+
+    // Cascade delete enrollments, attendance, exam submissions, progress
+    unifiedDb.enrollments = unifiedDb.enrollments.filter((e) => e.user_id !== id);
+    unifiedDb.attendance_records = unifiedDb.attendance_records.filter((a) => a.user_id !== id);
+    unifiedDb.exam_submissions = unifiedDb.exam_submissions.filter((s) => s.user_id !== id);
+    unifiedDb.user_progress = unifiedDb.user_progress.filter((p) => p.user_id !== id);
+    unifiedDb.academic_records = unifiedDb.academic_records.filter((r) => r.user_id !== id);
+    unifiedDb.certificates = unifiedDb.certificates.filter((c) => c.user_id !== id);
+    unifiedDb.favorites = unifiedDb.favorites.filter((f) => f.user_id !== id);
+
+    saveDb();
+    return res.json({ success: true, message: "کاربر با تمام سوابق با موفقیت حذف گردید." });
+  });
+
   // ==========================================
   // COURSES APIs
   // ==========================================
@@ -838,6 +1016,38 @@ async function startServer() {
       };
     });
     return res.json(coursesWithInstructor);
+  });
+
+  app.get("/api/courses/categories", (req, res) => {
+    const catMap: Record<string, number> = {};
+    unifiedDb.courses.forEach((c) => {
+      const cat = (c.category || "عمومی و معارف").trim();
+      catMap[cat] = (catMap[cat] || 0) + 1;
+    });
+
+    const categoryIcons: Record<string, { icon: string; bgColor: string }> = {
+      "هوش مصنوعی": { icon: "💻", bgColor: "bg-indigo-100 text-indigo-800" },
+      "برنامه‌نویسی": { icon: "⚡", bgColor: "bg-blue-100 text-blue-800" },
+      "فقه و معارف": { icon: "⚖️", bgColor: "bg-teal-100 text-teal-800" },
+      "علوم حوزوی": { icon: "🕌", bgColor: "bg-emerald-100 text-emerald-800" },
+      "انس با قرآن": { icon: "📖", bgColor: "bg-amber-100 text-amber-800" },
+      "نهج‌البلاغه": { icon: "📜", bgColor: "bg-blue-100 text-blue-800" },
+      "سبک زندگی": { icon: "🌱", bgColor: "bg-rose-100 text-rose-800" },
+      "اعتقادی": { icon: "✨", bgColor: "bg-purple-100 text-purple-800" },
+    };
+
+    const categories = Object.keys(catMap).map((catName, idx) => {
+      const meta = categoryIcons[catName] || { icon: "📚", bgColor: "bg-purple-100 text-purple-800" };
+      return {
+        id: idx + 1,
+        title: catName,
+        icon: meta.icon,
+        bgColor: meta.bgColor,
+        courses_count: catMap[catName],
+      };
+    });
+
+    return res.json(categories);
   });
 
   app.get("/api/courses/:id", (req, res) => {
@@ -1158,7 +1368,7 @@ async function startServer() {
   });
 
   app.post("/api/exams", (req, res) => {
-    const { id, course_id, title, description, duration_minutes, passing_score, total_score, max_attempts, questions, is_active } = req.body;
+    const { id, course_id, title, description, duration_minutes, passing_score, total_score, max_attempts, questions, is_active, save_to_question_bank } = req.body;
     const examId = id || `exam_${course_id}_${Date.now()}`;
 
     const existingIndex = unifiedDb.exams.findIndex((e) => e.id === examId);
@@ -1179,11 +1389,97 @@ async function startServer() {
     if (existingIndex !== -1) {
       unifiedDb.exams[existingIndex] = newExam;
     } else {
-      unifiedDb.exams.push(newExam);
+      unifiedDb.exams.unshift(newExam);
+    }
+
+    // Save questions into question bank if requested or if questions carry difficulty tags
+    if (Array.isArray(questions) && (save_to_question_bank || true)) {
+      questions.forEach((q: any) => {
+        if (q.question && q.question.trim()) {
+          const exists = unifiedDb.question_bank.some(
+            (item: any) => item.question.trim().toLowerCase() === q.question.trim().toLowerCase()
+          );
+          if (!exists) {
+            unifiedDb.question_bank.push({
+              id: `qb_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              course_id: Number(course_id),
+              course_title: title || "دوره آموزشی",
+              type: q.type || "multiple_choice",
+              question: q.question.trim(),
+              options: q.options || ["", "", "", ""],
+              correct_index: Number(q.correct_index) || 0,
+              sample_answer: q.sample_answer || "",
+              difficulty: q.difficulty || "medium",
+              tag: q.tag || "طراحی دستی",
+              score: Number(q.score) || 5,
+              created_at: new Date().toISOString(),
+            });
+          }
+        }
+      });
     }
 
     saveDb();
     return res.json(newExam);
+  });
+
+  app.put("/api/exams/:id", (req, res) => {
+    const { id } = req.params;
+    const index = unifiedDb.exams.findIndex((e) => e.id === id);
+    if (index === -1) return res.status(404).json({ error: "آزمون یافت نشد" });
+
+    unifiedDb.exams[index] = {
+      ...unifiedDb.exams[index],
+      ...req.body,
+      updated_at: new Date().toISOString(),
+    };
+
+    // If questions updated, also update/save into question bank
+    if (Array.isArray(req.body.questions)) {
+      req.body.questions.forEach((q: any) => {
+        if (q.question && q.question.trim()) {
+          const exists = unifiedDb.question_bank.some(
+            (item: any) => item.question.trim().toLowerCase() === q.question.trim().toLowerCase()
+          );
+          if (!exists) {
+            unifiedDb.question_bank.push({
+              id: `qb_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              course_id: Number(unifiedDb.exams[index].course_id),
+              course_title: unifiedDb.exams[index].title,
+              type: q.type || "multiple_choice",
+              question: q.question.trim(),
+              options: q.options || ["", "", "", ""],
+              correct_index: Number(q.correct_index) || 0,
+              sample_answer: q.sample_answer || "",
+              difficulty: q.difficulty || "medium",
+              tag: q.tag || "طراحی دستی",
+              score: Number(q.score) || 5,
+              created_at: new Date().toISOString(),
+            });
+          }
+        }
+      });
+    }
+
+    saveDb();
+    return res.json(unifiedDb.exams[index]);
+  });
+
+  app.post("/api/exams/:id/duplicate", (req, res) => {
+    const { id } = req.params;
+    const exam = unifiedDb.exams.find((e) => e.id === id);
+    if (!exam) return res.status(404).json({ error: "آزمون یافت نشد" });
+
+    const cloned = {
+      ...JSON.parse(JSON.stringify(exam)),
+      id: `exam_${exam.course_id}_dup_${Date.now()}`,
+      title: `رونوشت از ${exam.title}`,
+      created_at: new Date().toISOString(),
+    };
+
+    unifiedDb.exams.unshift(cloned);
+    saveDb();
+    return res.json(cloned);
   });
 
   app.delete("/api/exams/:id", (req, res) => {
@@ -1191,6 +1487,137 @@ async function startServer() {
     unifiedDb.exams = unifiedDb.exams.filter((e) => e.id !== id);
     saveDb();
     return res.json({ success: true });
+  });
+
+  // ==========================================
+  // QUESTION BANK APIs
+  // ==========================================
+  app.get("/api/question-bank", (req, res) => {
+    const { course_id, difficulty, type, search } = req.query;
+    let list = unifiedDb.question_bank || [];
+
+    if (course_id) {
+      list = list.filter((q) => Number(q.course_id) === Number(course_id));
+    }
+    if (difficulty && difficulty !== "all") {
+      list = list.filter((q) => q.difficulty === difficulty);
+    }
+    if (type && type !== "all") {
+      list = list.filter((q) => q.type === type);
+    }
+    if (search) {
+      const s = String(search).toLowerCase();
+      list = list.filter(
+        (q) => q.question?.toLowerCase().includes(s) || q.tag?.toLowerCase().includes(s)
+      );
+    }
+
+    return res.json(list);
+  });
+
+  app.post("/api/question-bank", (req, res) => {
+    const { course_id, course_title, type, question, options, correct_index, sample_answer, difficulty, tag, score } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ error: "متن سوال الزامی است" });
+    }
+
+    const newQuestion = {
+      id: `qb_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      course_id: Number(course_id) || 1,
+      course_title: course_title || "عمومی",
+      type: type || "multiple_choice",
+      question: question.trim(),
+      options: Array.isArray(options) ? options : ["", "", "", ""],
+      correct_index: Number(correct_index) || 0,
+      sample_answer: sample_answer || "",
+      difficulty: difficulty || "medium",
+      tag: tag || "تگ اختصاصی",
+      score: Number(score) || 5,
+      created_at: new Date().toISOString(),
+    };
+
+    unifiedDb.question_bank.unshift(newQuestion);
+    saveDb();
+    return res.json(newQuestion);
+  });
+
+  app.delete("/api/question-bank/:id", (req, res) => {
+    const { id } = req.params;
+    unifiedDb.question_bank = unifiedDb.question_bank.filter((q) => q.id !== id);
+    saveDb();
+    return res.json({ success: true });
+  });
+
+  app.post("/api/question-bank/auto-generate", (req, res) => {
+    const {
+      course_id,
+      title,
+      description,
+      duration_minutes,
+      passing_score,
+      easy_count = 0,
+      medium_count = 0,
+      hard_count = 0,
+      mc_count,
+      desc_count,
+      random_per_student = false,
+    } = req.body;
+
+    const cId = Number(course_id);
+    let pool = unifiedDb.question_bank.filter((q) => !cId || Number(q.course_id) === cId);
+    if (pool.length === 0) pool = unifiedDb.question_bank; // fallback
+
+    const shuffle = (arr: any[]) => [...arr].sort(() => Math.random() - 0.5);
+
+    const easyPool = pool.filter((q) => q.difficulty === "easy");
+    const medPool = pool.filter((q) => q.difficulty === "medium");
+    const hardPool = pool.filter((q) => q.difficulty === "hard");
+
+    let selectedQuestions: any[] = [
+      ...shuffle(easyPool).slice(0, Number(easy_count) || 0),
+      ...shuffle(medPool).slice(0, Number(medium_count) || 0),
+      ...shuffle(hardPool).slice(0, Number(hard_count) || 0),
+    ];
+
+    if (selectedQuestions.length === 0 && (mc_count || desc_count)) {
+      const mcPool = pool.filter((q) => q.type === "multiple_choice");
+      const descPool = pool.filter((q) => q.type === "descriptive");
+      selectedQuestions = [
+        ...shuffle(mcPool).slice(0, Number(mc_count) || 0),
+        ...shuffle(descPool).slice(0, Number(desc_count) || 0),
+      ];
+    }
+
+    if (selectedQuestions.length === 0) {
+      // Fallback: grab any available from pool up to 4
+      selectedQuestions = shuffle(pool).slice(0, 4);
+    }
+
+    if (selectedQuestions.length === 0) {
+      return res.status(400).json({ error: "بانک سوالات برای این دوره خالی است. ابتدا سوالی تعریف کنید." });
+    }
+
+    const totalScore = selectedQuestions.reduce((sum, q) => sum + (Number(q.score) || 5), 0);
+
+    const newExam = {
+      id: `exam_${cId}_auto_${Date.now()}`,
+      course_id: cId,
+      title: title || `آزمون هوشمند استخراجی از بانک سوالات (${new Date().toLocaleDateString("fa-IR")})`,
+      description: description || "آزمون طراحی شده به صورت خودکار از بانک سوالات با توازن سطح دشواری.",
+      duration_minutes: Number(duration_minutes) || 25,
+      passing_score: Number(passing_score) || Math.round(totalScore * 0.6),
+      total_score: totalScore,
+      max_attempts: 2,
+      questions: selectedQuestions,
+      is_active: true,
+      randomize_options: true,
+      random_from_pool: Boolean(random_per_student),
+      created_at: new Date().toISOString(),
+    };
+
+    unifiedDb.exams.unshift(newExam);
+    saveDb();
+    return res.json(newExam);
   });
 
   // Exam Submission & Auto-Grading (MC + Descriptive)
@@ -1350,7 +1777,7 @@ async function startServer() {
   });
 
   // ==========================================
-  // ATTENDANCE APIs
+  // ATTENDANCE APIs (Connected to Real Sessions and Real Enrollments)
   // ==========================================
   app.get("/api/courses/:id/attendance", (req, res) => {
     const courseId = Number(req.params.id);
@@ -1360,16 +1787,68 @@ async function startServer() {
     if (userId) {
       records = records.filter((a) => String(a.user_id) === String(userId));
     }
-    return res.json(records);
+
+    // Real enrolled students in this course
+    const enrollments = unifiedDb.enrollments.filter((e) => Number(e.course_id) === courseId);
+    const enrolledStudents = enrollments.map((e) => {
+      const prof = unifiedDb.profiles.find((p) => p.id === e.user_id || p.eitaa_id === e.user_id);
+      return {
+        userId: e.user_id,
+        userName: prof?.full_name || "دانش‌پژوه",
+        avatarUrl: prof?.avatar_url || "",
+        enrolledAt: e.enrolled_at,
+      };
+    });
+
+    // Real live/scheduled sessions for this course
+    const sessions = unifiedDb.live_sessions.filter((l) => Number(l.course_id) === courseId);
+
+    // Compute real attendance summary per enrolled student
+    const summary = enrolledStudents.map((student) => {
+      const studentRecords = records.filter((r) => String(r.user_id) === String(student.userId));
+      const presentCount = studentRecords.filter((r) => r.status === "present").length;
+      const justifiedCount = studentRecords.filter((r) => r.status === "justified").length;
+      const tardyCount = studentRecords.filter((r) => r.status === "tardy").length;
+      const absentCount = studentRecords.filter((r) => r.status === "absent").length;
+
+      const totalSessionsCount = Math.max(sessions.length, studentRecords.length);
+      const isDropped = absentCount > 3;
+
+      return {
+        user_id: student.userId,
+        user_name: student.userName,
+        course_id: courseId,
+        total_sessions: totalSessionsCount,
+        present_count: presentCount,
+        absent_count: absentCount,
+        justified_count: justifiedCount,
+        tardy_count: tardyCount,
+        max_allowed_absences: 3,
+        status: isDropped ? "dropped_absence" : absentCount === 3 ? "warning" : "active",
+        is_dropped: isDropped,
+      };
+    });
+
+    return res.json({
+      records,
+      sessions,
+      enrolledStudents,
+      summary,
+    });
   });
 
   app.post("/api/courses/:id/attendance", (req, res) => {
     const courseId = Number(req.params.id);
-    const { userId, userName, sessionTitle, sessionDate, status, isAuto, durationMinutes } = req.body;
+    const { userId, userName, sessionTitle, sessionDate, status, isAuto, durationMinutes, sessionId } = req.body;
+
+    const existingIndex = unifiedDb.attendance_records.findIndex(
+      (a) => Number(a.course_id) === courseId && String(a.user_id) === String(userId) && (sessionId ? a.session_id === sessionId : a.session_title === sessionTitle)
+    );
 
     const record = {
-      id: Date.now(),
+      id: existingIndex !== -1 ? unifiedDb.attendance_records[existingIndex].id : Date.now(),
       course_id: courseId,
+      session_id: sessionId || null,
       user_id: userId,
       user_name: userName || "دانشجو",
       session_title: sessionTitle || `جلسه ${new Date().toLocaleDateString("fa-IR")}`,
@@ -1380,7 +1859,12 @@ async function startServer() {
       created_at: new Date().toISOString(),
     };
 
-    unifiedDb.attendance_records.push(record);
+    if (existingIndex !== -1) {
+      unifiedDb.attendance_records[existingIndex] = record;
+    } else {
+      unifiedDb.attendance_records.push(record);
+    }
+
     saveDb();
     return res.json({ success: true, record });
   });
@@ -1566,6 +2050,187 @@ async function startServer() {
     unifiedDb.live_sessions = unifiedDb.live_sessions.filter((l) => Number(l.id) !== id);
     saveDb();
     return res.json({ success: true });
+  });
+
+  // Start Live Session (by Teacher/Manager)
+  app.post("/api/live_sessions/:id/start", (req, res) => {
+    const id = Number(req.params.id);
+    const session = unifiedDb.live_sessions.find((l) => Number(l.id) === id);
+    if (!session) return res.status(404).json({ error: "جلسه یافت نشد" });
+
+    session.status = "live";
+    session.started_at = new Date().toISOString();
+    saveDb();
+    return res.json({ success: true, session });
+  });
+
+  // End Live Session
+  app.post("/api/live_sessions/:id/end", (req, res) => {
+    const id = Number(req.params.id);
+    const session = unifiedDb.live_sessions.find((l) => Number(l.id) === id);
+    if (!session) return res.status(404).json({ error: "جلسه یافت نشد" });
+
+    session.status = "ended";
+    session.ended_at = new Date().toISOString();
+    saveDb();
+    return res.json({ success: true, session });
+  });
+
+  // Student joins live class and automatically records attendance
+  app.post("/api/live_sessions/:id/join", (req, res) => {
+    const sessionId = Number(req.params.id);
+    const { userId, userName } = req.body;
+
+    const session = unifiedDb.live_sessions.find((l) => Number(l.id) === sessionId);
+    if (!session) return res.status(404).json({ error: "جلسه یافت نشد" });
+
+    // Check if attendance already recorded for this session and user
+    const existing = unifiedDb.attendance_records.find(
+      (a) => a.session_id === sessionId && String(a.user_id) === String(userId)
+    );
+
+    let attRecord = existing;
+    if (!existing && userId) {
+      attRecord = {
+        id: Date.now(),
+        course_id: Number(session.course_id),
+        session_id: sessionId,
+        user_id: userId,
+        user_name: userName || "دانش‌پژوه",
+        session_title: session.title,
+        session_date: new Date().toLocaleDateString("fa-IR"),
+        status: "present",
+        is_auto: true,
+        duration_minutes: 60,
+        created_at: new Date().toISOString(),
+      };
+      unifiedDb.attendance_records.push(attRecord);
+      saveDb();
+    }
+
+    return res.json({
+      success: true,
+      room_url: session.room_url,
+      attendanceRecord: attRecord,
+    });
+  });
+
+  // ==========================================
+  // SUPPORT TICKETS APIs
+  // ==========================================
+  app.get("/api/support/tickets", (req, res) => {
+    const { userId } = req.query;
+    let list = unifiedDb.support_tickets || [];
+    if (userId) {
+      list = list.filter((t) => String(t.user_id) === String(userId));
+    }
+    return res.json(list);
+  });
+
+  app.post("/api/support/tickets", (req, res) => {
+    const { user_id, user_name, subject, category, message } = req.body;
+    if (!subject?.trim() || !message?.trim()) {
+      return res.status(400).json({ error: "موضوع و متن پیام الزامی است" });
+    }
+
+    const ticketId = `tkt_${Date.now()}`;
+    const newTicket = {
+      id: ticketId,
+      user_id: user_id || "usr_current",
+      user_name: user_name || "دانش‌پژوه",
+      subject: subject.trim(),
+      category: category || "عمومی",
+      status: "open",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      messages: [
+        {
+          id: `msg_${Date.now()}`,
+          sender_id: user_id || "usr_current",
+          sender_name: user_name || "دانش‌پژوه",
+          text: message.trim(),
+          is_admin: false,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
+
+    unifiedDb.support_tickets.unshift(newTicket);
+    saveDb();
+    return res.json(newTicket);
+  });
+
+  app.post("/api/support/tickets/:id/messages", (req, res) => {
+    const { id } = req.params;
+    const { sender_id, sender_name, text, is_admin } = req.body;
+
+    const ticket = unifiedDb.support_tickets.find((t) => t.id === id);
+    if (!ticket) return res.status(404).json({ error: "تیکت یافت نشد" });
+
+    if (!text?.trim()) return res.status(400).json({ error: "متن پیام الزامی است" });
+
+    const newMsg = {
+      id: `msg_${Date.now()}`,
+      sender_id: sender_id || (is_admin ? "admin-999" : "usr_current"),
+      sender_name: sender_name || (is_admin ? "پشتیبانی پلتفرم" : "کاربر"),
+      text: text.trim(),
+      is_admin: Boolean(is_admin),
+      created_at: new Date().toISOString(),
+    };
+
+    ticket.messages.push(newMsg);
+    ticket.updated_at = new Date().toISOString();
+    ticket.status = is_admin ? "answered" : "open";
+
+    saveDb();
+    return res.json({ success: true, message: newMsg, ticket });
+  });
+
+  app.put("/api/support/tickets/:id/status", (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const ticket = unifiedDb.support_tickets.find((t) => t.id === id);
+    if (!ticket) return res.status(404).json({ error: "تیکت یافت نشد" });
+
+    ticket.status = status || "closed";
+    ticket.updated_at = new Date().toISOString();
+    saveDb();
+    return res.json({ success: true, ticket });
+  });
+
+  // ==========================================
+  // FAVORITES APIs
+  // ==========================================
+  app.get("/api/users/:userId/favorites", (req, res) => {
+    const { userId } = req.params;
+    const favs = (unifiedDb.favorites || []).filter((f) => String(f.user_id) === String(userId));
+    const courseIds = favs.map((f) => Number(f.course_id));
+    return res.json(courseIds);
+  });
+
+  app.post("/api/users/:userId/favorites/:courseId", (req, res) => {
+    const { userId, courseId } = req.params;
+    const cId = Number(courseId);
+
+    const index = (unifiedDb.favorites || []).findIndex(
+      (f) => String(f.user_id) === String(userId) && Number(f.course_id) === cId
+    );
+
+    let isFavorite = false;
+    if (index !== -1) {
+      unifiedDb.favorites.splice(index, 1);
+      isFavorite = false;
+    } else {
+      unifiedDb.favorites.push({
+        user_id: userId,
+        course_id: cId,
+        created_at: new Date().toISOString(),
+      });
+      isFavorite = true;
+    }
+
+    saveDb();
+    return res.json({ success: true, isFavorite });
   });
 
   // Vite middleware for development

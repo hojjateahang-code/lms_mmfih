@@ -43,9 +43,28 @@ export default function ExamRoomModal({
   const [previousAttemptsCount, setPreviousAttemptsCount] = useState(0);
   const [attemptsExceeded, setAttemptsExceeded] = useState(false);
   const [lastSubmission, setLastSubmission] = useState<ExamSubmission | null>(null);
+  
+  // Shuffled options per student while preserving key accuracy
+  const [questionOptionsMap, setQuestionOptionsMap] = useState<Record<string, { text: string; originalIndex: number }[]>>({});
 
-  // Check previous attempts on mount
+  // Initialize randomized option ordering and check attempts on mount
   useEffect(() => {
+    // 1. Shuffle options per question
+    const optionsMap: Record<string, { text: string; originalIndex: number }[]> = {};
+    (exam.questions || []).forEach((q) => {
+      if (q.options && q.options.length > 0) {
+        const mapped = q.options.map((optText, idx) => ({ text: optText, originalIndex: idx }));
+        // Fisher-Yates shuffle
+        for (let i = mapped.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
+        }
+        optionsMap[q.id] = mapped;
+      }
+    });
+    setQuestionOptionsMap(optionsMap);
+
+    // 2. Check previous student attempts
     const checkAttempts = async () => {
       const subs = await getStudentSubmissions(userId, exam.course_id);
       const examSubs = subs.filter(s => s.exam_id === exam.id);
@@ -215,22 +234,22 @@ export default function ExamRoomModal({
                 </div>
               </div>
 
-              {/* 1. Multiple Choice Options */}
+              {/* 1. Multiple Choice Options (Randomized order per student without changing answer key) */}
               {!isDescriptive && currentQ.options && (
                 <div className="space-y-2.5">
-                  {currentQ.options.map((opt, optIdx) => {
-                    const isSelected = answers[currentQ.id] === optIdx;
+                  {((questionOptionsMap[currentQ.id] || currentQ.options.map((t, idx) => ({ text: t, originalIndex: idx })))).map((opt, optDisplayIdx) => {
+                    const isSelected = answers[currentQ.id] === opt.originalIndex;
                     return (
                       <button
-                        key={optIdx}
-                        onClick={() => handleSelectOption(currentQ.id, optIdx)}
+                        key={optDisplayIdx}
+                        onClick={() => handleSelectOption(currentQ.id, opt.originalIndex)}
                         className={`w-full p-3.5 rounded-2xl text-right transition border text-xs font-bold flex items-center justify-between cursor-pointer ${
                           isSelected 
                             ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-xs ring-1 ring-indigo-500/20' 
                             : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
                         }`}
                       >
-                        <span className="leading-relaxed">{opt}</span>
+                        <span className="leading-relaxed">{opt.text}</span>
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mr-2 ${
                           isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300'
                         }`}>

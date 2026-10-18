@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, PlayCircle, Clock, CheckCircle, Award, Loader2, Radio, ShieldAlert } from 'lucide-react';
+import { BookOpen, PlayCircle, Clock, CheckCircle, Award, Loader2, Radio, ShieldAlert, Heart, Trash2 } from 'lucide-react';
 import { Course, Certificate } from '../../types';
-import { getUserEnrollments } from '../../services/courseService';
-import { getUserCertificates, isStudentDropped, getCourseAttendanceSummary } from '../../services/lmsService';
+import { getUserEnrollments, getPublishedCourses } from '../../services/courseService';
+import { getUserCertificates, isStudentDropped, getCourseAttendanceSummary, getUserFavorites, toggleCourseFavorite } from '../../services/lmsService';
 import { useAuth } from '../../contexts/AuthContext';
 import CertificateViewerModal from '../../components/lms/CertificateViewerModal';
 
@@ -12,31 +12,41 @@ interface MyCoursesPageProps {
 
 export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
   const { user } = useAuth();
+  const [activeSubTab, setActiveSubTab] = useState<'enrolled' | 'favorites'>('enrolled');
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [favoriteCourses, setFavoriteCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingCertificate, setViewingCertificate] = useState<Certificate | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const [enrollRes, certs] = await Promise.all([
-        getUserEnrollments(user.id),
-        getUserCertificates(user.id)
-      ]);
-
-      if (enrollRes.success && enrollRes.data) {
-        setEnrollments(enrollRes.data);
-      }
-      setCertificates(certs);
-      setLoading(false);
-    };
     fetchData();
   }, [user]);
+
+  const fetchData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const [enrollRes, certs, favIds, allCoursesRes] = await Promise.all([
+      getUserEnrollments(user.id),
+      getUserCertificates(user.id),
+      getUserFavorites(user.id),
+      getPublishedCourses()
+    ]);
+
+    if (enrollRes.success && enrollRes.data) {
+      setEnrollments(enrollRes.data);
+    }
+    setCertificates(certs);
+
+    if (allCoursesRes.success && allCoursesRes.data) {
+      const favs = allCoursesRes.data.filter((c: any) => favIds.includes(Number(c.id)));
+      setFavoriteCourses(favs);
+    }
+    setLoading(false);
+  };
 
   if (loading) {
     return (
@@ -61,20 +71,103 @@ export default function MyCoursesPage({ onSelectCourse }: MyCoursesPageProps) {
         <p className="text-xs text-slate-500">کلاس‌های آنلاین، محتوای آفلاین و پیگیری حضور و غیاب</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-indigo-600 text-white p-4 rounded-3xl shadow-sm">
-          <BookOpen size={20} className="mb-2 text-indigo-200" />
-          <div className="text-xl font-black">{enrollments.length} دوره</div>
-          <div className="text-[11px] text-indigo-100 font-medium">دوره‌های ثبت‌نامی فعال</div>
-        </div>
-        <div className="bg-amber-600 text-white p-4 rounded-3xl shadow-sm">
-          <Award size={20} className="mb-2 text-amber-200" />
-          <div className="text-xl font-black">{certificates.length} گواهی</div>
-          <div className="text-[11px] text-amber-100 font-medium">مدارک صادره رسمی</div>
-        </div>
+      {/* Sub-tab switcher */}
+      <div className="flex bg-slate-200/80 p-1 rounded-2xl text-xs font-bold mb-4">
+        <button
+          onClick={() => setActiveSubTab('enrolled')}
+          className={`flex-1 py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
+            activeSubTab === 'enrolled' ? 'bg-white text-indigo-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <BookOpen size={14} />
+          دوره‌های ثبت‌نامی ({enrollments.length})
+        </button>
+        <button
+          onClick={() => setActiveSubTab('favorites')}
+          className={`flex-1 py-2 rounded-xl transition flex items-center justify-center gap-1.5 ${
+            activeSubTab === 'favorites' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600 hover:text-rose-600'
+          }`}
+        >
+          <Heart size={14} className={favoriteCourses.length > 0 ? "fill-rose-500 text-rose-500" : ""} />
+          علاقه‌مندی‌های من ({favoriteCourses.length})
+        </button>
       </div>
 
-      {enrollments.length === 0 ? (
+      {activeSubTab === 'favorites' ? (
+        favoriteCourses.length === 0 ? (
+          <div className="text-center bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-2">
+            <Heart size={36} className="mx-auto text-slate-300" />
+            <p className="text-slate-700 font-bold text-sm">هیچ دوره‌ای در لیست علاقه‌مندی‌ها وجود ندارد.</p>
+            <p className="text-xs text-slate-400">می‌توانید از صفحه اصلی با لمس علامت قلب، دوره‌ها را ذخیره کنید.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {favoriteCourses.map((c) => {
+              const mappedCourse: Course = {
+                id: String(c.id),
+                title: c.title,
+                instructor: c.instructor_name || 'استاد محترم',
+                category_id: 1,
+                category_name: c.category || 'عمومی',
+                price: c.price,
+                original_price: c.price,
+                is_new: false,
+                rating: 5.0,
+                students_count: c.students_count || 0,
+                episodes_count: 0,
+                duration: c.duration || '۱۲ ساعت',
+                level: 'عمومی',
+                description: c.description || '',
+                banner_url: c.cover_url || '',
+                is_free: c.price === 0,
+              };
+
+              return (
+                <div
+                  key={c.id}
+                  className="bg-white p-3.5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between gap-3"
+                >
+                  <div
+                    onClick={() => onSelectCourse(mappedCourse)}
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                  >
+                    <img
+                      src={c.cover_url || 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?q=80&w=600&auto=format&fit=crop'}
+                      alt={c.title}
+                      className="w-14 h-14 rounded-2xl object-cover shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] text-indigo-600 font-bold">{c.category || 'عمومی'}</span>
+                      <h4 className="font-bold text-xs text-slate-800 truncate">{c.title}</h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{c.instructor_name || 'استاد محترم'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={async () => {
+                        if (!user?.id) return;
+                        await toggleCourseFavorite(user.id, Number(c.id));
+                        setFavoriteCourses(favoriteCourses.filter((fc) => fc.id !== c.id));
+                      }}
+                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition"
+                      title="حذف از علاقه‌مندی‌ها"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => onSelectCourse(mappedCourse)}
+                      className="bg-indigo-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs"
+                    >
+                      مشاهده
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : enrollments.length === 0 ? (
         <div className="text-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-2">
           <p className="text-slate-500 font-bold text-sm">هنوز در دوره‌ای ثبت‌نام نکرده‌اید.</p>
           <p className="text-xs text-slate-400">از صفحه خانه دوره‌های مورد نظر خود را انتخاب و ثبت‌نام نمایید.</p>

@@ -1,5 +1,5 @@
 // src/services/userService.ts
-import { UserProfile } from '../types';
+import { UserProfile, UserRole } from '../types';
 
 export const getAllUsers = async (): Promise<{ success: boolean; data?: UserProfile[]; error?: string }> => {
   try {
@@ -24,9 +24,9 @@ export const getUserById = async (userId: string): Promise<UserProfile | null> =
   }
 };
 
-export const updateUserRole = async (userId: string, newRole: string): Promise<{ success: boolean; error?: string }> => {
+export const updateUserRole = async (userId: string, newRole: UserRole | string): Promise<{ success: boolean; error?: string }> => {
   try {
-    const res = await fetch(`/api/users/${userId}`, {
+    const res = await fetch(`/api/users/${userId}/role`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: newRole }),
@@ -50,6 +50,21 @@ export const updateUserProfile = async (userId: string, profileData: Partial<Use
       return { success: true, data };
     }
     return { success: false, error: 'خطا در ذخیره اطلاعات کاربری' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const deleteUser = async (userId: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await fetch(`/api/users/${userId}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, message: data.message };
+    }
+    return { success: false, error: data.error || 'خطا در حذف کاربر' };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

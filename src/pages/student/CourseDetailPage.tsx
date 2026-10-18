@@ -21,7 +21,8 @@ import {
   FileCheck,
   Sparkles,
   ExternalLink,
-  Lock
+  Lock,
+  Heart
 } from 'lucide-react';
 import { Course, LiveSession, Certificate, Exam, CourseAttendanceSummary } from '../../types';
 import { getCourseContent, Chapter, Lesson, enrollCourse, getEnrollmentStatus, markLessonCompleted, getUserProgress } from '../../services/courseService';
@@ -30,7 +31,9 @@ import {
   getCourseAttendanceSummary, 
   isStudentDropped, 
   getCourseExams, 
-  getUserCertificates 
+  getUserCertificates,
+  getUserFavorites,
+  toggleCourseFavorite
 } from '../../services/lmsService';
 import { useAuth } from '../../contexts/AuthContext';
 import LiveClassModal from '../../components/lms/LiveClassModal';
@@ -65,6 +68,7 @@ export default function CourseDetailPage({ course, onBack, onEnroll }: CourseDet
   const [viewingCertificate, setViewingCertificate] = useState<Certificate | null>(null);
   const [attendanceSummary, setAttendanceSummary] = useState<CourseAttendanceSummary | null>(null);
   const [isDroppedDueToAbsence, setIsDroppedDueToAbsence] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const courseId = parseInt(course.id) || 1;
 
@@ -104,12 +108,22 @@ export default function CourseDetailPage({ course, onBack, onEnroll }: CourseDet
         const summary = await getCourseAttendanceSummary(courseId, user.id, user.user_metadata?.full_name || user.full_name || 'کاربر گرامی');
         setAttendanceSummary(summary);
         setIsDroppedDueToAbsence(isStudentDropped(courseId, user.id));
+
+        // Check if course is in user favorites
+        const favs = await getUserFavorites(user.id);
+        setIsFavorite(favs.includes(courseId));
       }
       
       setLoading(false);
     };
     fetchAll();
   }, [course.id, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user) return alert('لطفاً ابتدا وارد سامانه شوید');
+    setIsFavorite(!isFavorite);
+    await toggleCourseFavorite(user.id, courseId);
+  };
 
   const handleEnrollClick = async () => {
     if (!user) return alert('لطفا ابتدا وارد سیستم شوید');
@@ -195,18 +209,18 @@ export default function CourseDetailPage({ course, onBack, onEnroll }: CourseDet
 
         <button 
           onClick={onBack}
-          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 transition shadow-lg"
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 transition shadow-lg cursor-pointer"
         >
           <ChevronRight size={20} />
         </button>
 
-        {/* Live Badge if any live session exists */}
-        {liveSessions.some(s => s.status === 'live') && (
-          <div className="absolute top-4 left-4 bg-rose-600/90 text-white text-[11px] font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg animate-pulse">
-            <Radio size={13} />
-            <span>کلاس آنلاین هم‌اکنون زنده است</span>
-          </div>
-        )}
+        <button 
+          onClick={handleToggleFavorite}
+          className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 transition shadow-lg cursor-pointer"
+          title={isFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها"}
+        >
+          <Heart size={18} className={isFavorite ? "fill-rose-500 text-rose-500" : "text-white"} />
+        </button>
       </div>
 
       {/* Main Course Info Header */}
@@ -233,6 +247,28 @@ export default function CourseDetailPage({ course, onBack, onEnroll }: CourseDet
       </div>
 
       <div className="px-4 py-4 space-y-4">
+        
+        {/* ACTIVE LIVE CLASS BANNER (Prompts student to join and register real attendance) */}
+        {liveSessions.some(s => s.status === 'live') && (
+          <div className="p-3.5 bg-gradient-to-r from-rose-600 via-rose-700 to-indigo-800 rounded-3xl text-white flex items-center justify-between shadow-lg animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-white animate-ping shrink-0" />
+              <div>
+                <strong className="block text-xs font-black">کلاس آنلاین هم‌اکنون در حال برگزاری است!</strong>
+                <span className="text-[10px] text-rose-100">جهت شرکت و ثبت خودکار حضور در کلاس کلیک فرمایید.</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const liveOne = liveSessions.find(s => s.status === 'live');
+                if (liveOne) setActiveLiveSession(liveOne);
+              }}
+              className="bg-white text-rose-700 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-md hover:bg-rose-50 transition active:scale-95 shrink-0 cursor-pointer"
+            >
+              ورود به کلاس
+            </button>
+          </div>
+        )}
         
         {/* DISQUALIFIED / AUTO-DROP BANNER (If student exceeded absences) */}
         {isDroppedDueToAbsence && (

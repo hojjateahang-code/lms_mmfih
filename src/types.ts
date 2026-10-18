@@ -1,9 +1,11 @@
+export type UserRole = 'student' | 'executive_manager' | 'teacher' | 'course_manager';
+
 export interface UserProfile {
   id: string;
   eitaa_id: string;
   username: string;
   full_name: string;
-  role: 'student' | 'executive_manager' | 'teacher';
+  role: UserRole;
   wallet_balance: number;
   avatar_url?: string;
   national_id?: string;
@@ -38,6 +40,7 @@ export interface Course {
   passing_grade?: number;
   live_schedule?: string;
   live_room_url?: string;
+  is_favorite?: boolean;
 }
 
 export interface Category {
@@ -55,6 +58,7 @@ export interface AttendanceRecord {
   course_id: number;
   user_id: string;
   user_name?: string;
+  session_id?: number | string;
   session_title: string;
   session_date: string;
   status: AttendanceStatus;
@@ -77,6 +81,8 @@ export interface CourseAttendanceSummary {
   is_dropped: boolean;
 }
 
+export type QuestionDifficulty = 'easy' | 'medium' | 'hard';
+
 export interface ExamQuestion {
   id: string;
   type?: 'multiple_choice' | 'descriptive';
@@ -85,6 +91,8 @@ export interface ExamQuestion {
   correct_index?: number; // for multiple choice
   sample_answer?: string; // for descriptive question guide / model answer
   score: number;
+  difficulty?: QuestionDifficulty;
+  tag?: string;
 }
 
 export interface Exam {
@@ -98,6 +106,23 @@ export interface Exam {
   max_attempts?: number; // 1, 2, 3, 5, or 0 (unlimited)
   questions: ExamQuestion[];
   is_active: boolean;
+  randomize_options?: boolean;
+  random_from_pool?: boolean;
+  created_at?: string;
+}
+
+export interface QuestionBankItem {
+  id: string;
+  course_id?: number;
+  course_title?: string;
+  type: 'multiple_choice' | 'descriptive';
+  question: string;
+  options?: string[];
+  correct_index?: number;
+  sample_answer?: string;
+  difficulty: QuestionDifficulty;
+  tag?: string;
+  score: number;
   created_at?: string;
 }
 
@@ -151,12 +176,38 @@ export interface AcademicRecord {
 }
 
 export interface LiveSession {
-  id: string;
+  id: number | string;
   course_id: number;
   title: string;
   scheduled_time: string;
+  day_of_week?: string;
+  start_time?: string;
   status: 'upcoming' | 'live' | 'ended' | 'completed';
   room_url: string;
   room_type: 'internal' | 'external' | 'skyroom' | 'jitsi' | 'meet';
   instructor_name: string;
+  started_at?: string;
+  ended_at?: string;
+  created_at?: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  text: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  user_name: string;
+  subject: string;
+  category: string;
+  status: 'open' | 'answered' | 'closed';
+  created_at: string;
+  updated_at: string;
+  messages: SupportMessage[];
 }
