@@ -130,26 +130,22 @@ export default function CourseDetailPage({ course, onBack, onEnroll }: CourseDet
 
   const processPayment = async () => {
     if (!user) return;
-    const currentBalance = parseInt(localStorage.getItem('mock_wallet_balance') || '50000');
-    if (currentBalance < course.price) {
-      alert('موجودی کیف پول شما کافی نیست. لطفا ابتدا کیف پول خود را شارژ کنید.');
-      return;
-    }
-    
     setPaymentLoading(true);
-    setTimeout(async () => {
+    try {
       const res = await enrollCourse(user.id, courseId);
       if (res.success) {
-        localStorage.setItem('mock_wallet_balance', (currentBalance - course.price).toString());
         setEnrolled(true);
         onEnroll(course);
         setShowPaymentModal(false);
-        alert('پرداخت موفقیت‌آمیز بود. ثبت‌نام شما قطعی شد.');
+        alert('پرداخت و ثبت‌نام در سامانه با موفقیت انجام شد.');
       } else {
-        alert('خطا در ثبت‌نام: ' + res.error);
+        alert(res.error || 'خطا در انجام عملیات');
       }
+    } catch (err: any) {
+      alert('خطا در ارتباط با سرور: ' + err.message);
+    } finally {
       setPaymentLoading(false);
-    }, 1200);
+    }
   };
 
   const [studyModeLesson, setStudyModeLesson] = useState<Lesson | null>(null);

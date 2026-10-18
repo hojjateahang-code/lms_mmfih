@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { supabase } from './lib/supabase';
 import BottomNav from './components/layout/BottomNav';
 import StudentHome from './pages/student/StudentHome';
 import SearchPage from './pages/student/SearchPage';
@@ -14,7 +13,8 @@ import ManagerUsersPage from './pages/manager/ManagerUsersPage';
 import CreateCoursePage from './pages/manager/CreateCoursePage';
 import PaymentVerify from './pages/payment/PaymentVerify';
 import { Course } from './types';
-import { Smartphone, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { getUserEnrollments } from './services/courseService';
 
 function AppRouter() {
   const { user, role, loading } = useAuth();
@@ -25,12 +25,22 @@ function AppRouter() {
   );
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [managerSelectedCourseId, setManagerSelectedCourseId] = useState<number | null>(null);
-  const [enrolledCourses, setEnrolledCourses] = useState<string[]>(['c1']); // Mock enrollment for now
+  const [enrolledCourses, setEnrolledCourses] = useState<string[]>([]);
 
-  // Common Notification Logic (can be moved to a context later)
+  // Common Notification Logic
   const handleSelectCourse = (course: Course) => setSelectedCourse(course);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (user?.id) {
+      getUserEnrollments(user.id).then((res) => {
+        if (res.success && res.data) {
+          setEnrolledCourses(res.data.map((e: any) => String(e.course_id)));
+        }
+      });
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     if (!loading) {
       if (role === 'executive_manager' && activeTab === 'home') setActiveTab('courses');
       if (role === 'teacher' && activeTab === 'home') setActiveTab('teacher_courses');
@@ -40,32 +50,15 @@ function AppRouter() {
 
   if (window.location.pathname.startsWith('/payment/')) return <PaymentVerify />;
 
-  // While checking Eitaa initData or Supabase Session
+  // While checking Eitaa initData or Unified Database Session
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
         <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
-        <p className="text-slate-500 text-sm font-bold animate-pulse">در حال ارتباط با سرور ایتا...</p>
+        <p className="text-slate-600 text-sm font-bold animate-pulse">در حال اتصال به دیتابیس سامانه و ایتا...</p>
       </div>
     );
   }
-
-  // Magic switch role function for testing
-  const handleSwitchRole = async () => {
-    let newRole = 'student';
-    if (role === 'student' || role === null) newRole = 'teacher';
-    else if (role === 'teacher') newRole = 'executive_manager';
-    else if (role === 'executive_manager') newRole = 'student';
-    
-    if (user) {
-      // Attempt to update Supabase, but don't worry if it fails due to RLS
-      await supabase.from('profiles').upsert({ id: user.id, role: newRole });
-    }
-    
-    // Force role locally for testing
-    localStorage.setItem('test_role', newRole);
-    window.location.reload();
-  };
 
   // Render course details (Player/Landing) if selected in student mode
   if (selectedCourse && (role === 'student' || role === null)) {
@@ -74,8 +67,8 @@ function AppRouter() {
         <CourseDetailPage
           course={selectedCourse}
           onBack={() => setSelectedCourse(null)}
-          onEnroll={(c) => setEnrolledCourses([...enrolledCourses, c.id])}
-          isEnrolled={enrolledCourses.includes(selectedCourse.id)}
+          onEnroll={(c) => setEnrolledCourses((prev) => [...prev, String(c.id)])}
+          isEnrolled={enrolledCourses.includes(String(selectedCourse.id))}
         />
       </div>
     );

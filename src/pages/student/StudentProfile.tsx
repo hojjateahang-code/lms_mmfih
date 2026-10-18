@@ -25,6 +25,7 @@ import { UserProfile, Certificate } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import PastRecordsModal from '../../components/lms/PastRecordsModal';
 import CertificateViewerModal from '../../components/lms/CertificateViewerModal';
+import { updateUserProfile } from '../../services/userService';
 
 interface StudentProfileProps {
   user?: any;
@@ -252,8 +253,25 @@ export default function StudentProfile({ user }: StudentProfileProps) {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setActiveModal(null); alert('اطلاعات با موفقیت ذخیره شد.'); }} className="flex-1 bg-indigo-600 text-white font-bold text-xs py-2.5 rounded-xl">ذخیره</button>
-                  <button onClick={() => setActiveModal(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold text-xs py-2.5 rounded-xl">انصراف</button>
+                  <button
+                    onClick={async () => {
+                      if (!user?.id) return;
+                      const res = await updateUserProfile(user.id, editFormData);
+                      if (res.success) {
+                        await refreshUser();
+                        setActiveModal(null);
+                        alert('اطلاعات کاربری با موفقیت در دیتابیس سامانه ثبت شد.');
+                      } else {
+                        alert(res.error || 'خطا در ثبت اطلاعات');
+                      }
+                    }}
+                    className="flex-1 bg-indigo-600 text-white font-bold text-xs py-2.5 rounded-xl hover:bg-indigo-700 transition"
+                  >
+                    ذخیره در دیتابیس
+                  </button>
+                  <button onClick={() => setActiveModal(null)} className="flex-1 bg-slate-100 text-slate-600 font-bold text-xs py-2.5 rounded-xl">
+                    انصراف
+                  </button>
                 </div>
               </div>
             )}

@@ -1,6 +1,6 @@
-import { supabase } from '../lib/supabase';
+// src/services/authService.ts
+import { UserProfile } from '../types';
 
-// Type definitions for Eitaa Mini-App object
 declare global {
   interface Window {
     Eitaa?: {
@@ -12,45 +12,166 @@ declare global {
             first_name: string;
             last_name?: string;
             username?: string;
+            phone_number?: string;
+            photo_url?: string;
           };
+          auth_date?: number;
+          hash?: string;
         };
+        version?: string;
+        platform?: string;
+        ready?: () => void;
+        expand?: () => void;
+        close?: () => void;
+        setHeaderColor?: (color: string) => void;
+        setBackgroundColor?: (color: string) => void;
       };
+    };
+    Telegram?: {
+      WebApp: any;
     };
   }
 }
 
-/**
- * Handles the invisible Eitaa login flow.
- * In a real production environment, the `initData` should be sent to a Supabase Edge Function
- * to be verified cryptographically using your Eitaa Bot Token.
- * For now, this calls a hypothetical edge function or handles the flow locally.
- */
-export const handleEitaaLogin = async () => {
-  const eitaaData = window.Eitaa?.WebApp?.initDataUnsafe?.user;
+export interface EitaaAuthResult {
+  success: boolean;
+  user?: UserProfile;
+  profile?: UserProfile;
+  role?: string;
+  token?: string;
+  isEitaaEnvironment: boolean;
+  message?: string;
+}
 
-  if (!eitaaData) {
-    return { success: false, message: 'Not inside Eitaa app' };
+/**
+ * Detects if the app is currently running inside Eitaa Mini-App SDK
+ */
+export const getEitaaSdkInstance = () => {
+  if (typeof window === 'undefined') return null;
+  return window.Eitaa?.WebApp || window.Telegram?.WebApp || null;
+};
+
+/**
+ * Handles real auto-login using Eitaa WebApp SDK.
+ * Invokes ready(), expand(), and posts initData/user to /api/auth/eitaa.
+ */
+export const handleEitaaLogin = async (): Promise<EitaaAuthResult> => {
+  if (typeof window === 'undefined') {
+    return { success: false, isEitaaEnvironment: false, message: 'Server context' };
+  }
+
+  const eitaa = getEitaaSdkInstance();
+  let eitaaUser = eitaa?.initDataUnsafe?.user;
+  let initData = eitaa?.initData || '';
+
+  // Also check URL parameters if Eitaa launched via web query params
+  if (!eitaaUser) {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlUser = urlParams.get('user');
+      const urlEitaaId = urlParams.get('eitaa_id');
+      const urlInitData = urlParams.get('initData');
+
+      if (urlUser) {
+        eitaaUser = JSON.parse(decodeURIComponent(urlUser));
+      } else if (urlEitaaId) {
+        eitaaUser = {
+          id: parseInt(urlEitaaId, 10) || 1001,
+          first_name: urlParams.get('first_name') || 'کاربر',
+          last_name: urlParams.get('last_name') || 'ایتا',
+          username: urlParams.get('username') || `eitaa_${urlEitaaId}`,
+        };
+      }
+      if (urlInitData) {
+        initData = decodeURIComponent(urlInitData);
+      }
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+  }
+
+  if (eitaa) {
+    try {
+      if (typeof eitaa.ready === 'function') eitaa.ready();
+      if (typeof eitaa.expand === 'function') eitaa.expand();
+      if (typeof eitaa.setHeaderColor === 'function') eitaa.setHeaderColor('#ffffff');
+      if (typeof eitaa.setBackgroundColor === 'function') eitaa.setBackgroundColor('#f8fafc');
+    } catch (e) {
+      console.warn('Eitaa SDK UI methods notice:', e);
+    }
+  }
+
+  if (!eitaaUser) {
+    return {
+      success: false,
+      isEitaaEnvironment: false,
+      message: 'برنامه در محیط مرورگر عادی اجرا شده است (نه داخل پیام‌رسان ایتا).',
+    };
   }
 
   try {
-    // Ideally: Call a Supabase Edge Function to verify and return a custom auth token
-    // const { data, error } = await supabase.functions.invoke('eitaa-auth', {
-    //   body: { initData: window.Eitaa.WebApp.initData }
-    // });
-    
-    // For local mock / client-side demonstration, we simulate the Edge Function behavior:
-    // We check if a profile with this eitaa_id exists. If not, the backend would create it.
-    console.log("Authenticating via Eitaa:", eitaaData);
-    
-    // In production, the Edge function signs you in. 
-    // Here we return a mock success flag to indicate Eitaa data is present.
-    return { 
-      success: true, 
-      user: eitaaData,
-      requiresBackendToken: true // Flag to remind that real JWT is needed from Edge Function
+    const res = await fetch('/api/auth/eitaa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        initData,
+        initDataUnsafe: eitaa?.initDataUnsafe || { user: eitaaUser },
+        user: eitaaUser,
+        platform: eitaa?.platform || 'eitaa',
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'خطا در احراز هویت با ایتا');
+    }
+
+    const data = await res.json();
+    return {
+      success: true,
+      user: data.user,
+      profile: data.profile,
+      role: data.role,
+      token: data.token,
+      isEitaaEnvironment: true,
     };
-  } catch (error: any) {
-    console.error('Eitaa Auth Error:', error.message);
-    return { success: false, message: error.message };
+  } catch (err: any) {
+    console.error('Eitaa Login error:', err);
+    return {
+      success: false,
+      isEitaaEnvironment: true,
+      message: err.message,
+    };
+  }
+};
+
+/**
+ * Login with credentials (e.g. for executive manager admin/admin123 or username)
+ */
+export const loginWithCredentials = async (username: string, password?: string, role?: string) => {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'خطا در ورود به سیستم');
+  }
+
+  return await res.json();
+};
+
+/**
+ * Fetch current user profile from unified backend
+ */
+export const fetchCurrentProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const res = await fetch(`/api/users/${userId}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
   }
 };

@@ -1,34 +1,59 @@
 // src/pages/student/WalletScreen.tsx
-import React, { useState } from 'react';
-import { ChevronRight, Plus, ArrowDownLeft, ArrowUpRight, CheckCircle2, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Plus, ArrowDownLeft, ArrowUpRight, CheckCircle2, CreditCard, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { chargeUserWallet, getTransactions, Transaction } from '../../services/financeService';
 
 interface WalletScreenProps {
   onBack: () => void;
 }
 
 export default function WalletScreen({ onBack }: WalletScreenProps) {
-  const { user } = useAuth();
-  const [balance, setBalance] = useState(1500000);
+  const { user, refreshUser } = useAuth();
+  const [balance, setBalance] = useState<number>(user?.wallet_balance ?? 500000);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargeAmount, setChargeAmount] = useState('200000');
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [isCharging, setIsCharging] = useState(false);
 
-    const handleAddFunds = async () => {
-    const num = parseInt(chargeAmount);
-    if (!isNaN(num) && num > 0) {
+  useEffect(() => {
+    if (user?.wallet_balance !== undefined) {
+      setBalance(user.wallet_balance);
+    }
+    const loadTx = async () => {
+      const res = await getTransactions(user?.id);
+      if (res.success && res.data) {
+        setTransactions(res.data);
+      }
+    };
+    loadTx();
+  }, [user]);
+
+  const handleAddFunds = async () => {
+    const num = parseInt(chargeAmount, 10);
+    if (!isNaN(num) && num > 0 && user?.id) {
       setIsCharging(true);
-      // Simulate API call
-      setTimeout(() => {
-        const newBalance = balance + num;
-        setBalance(newBalance);
-        localStorage.setItem('mock_wallet_balance', newBalance.toString());
+      try {
+        const res = await chargeUserWallet(user.id, num, 'افزایش موجودی از درگاه ایتا');
+        if (res.success && res.balance !== undefined) {
+          setBalance(res.balance);
+          setShowChargeModal(false);
+          setChargeAmount('200000');
+          setSuccessNotice(`کیف پول شما با موفقیت ${num.toLocaleString('fa-IR')} تومان شارژ شد.`);
+          await refreshUser();
+          const txRes = await getTransactions(user.id);
+          if (txRes.success && txRes.data) {
+            setTransactions(txRes.data);
+          }
+        } else {
+          alert(res.error || 'خطا در افزایش اعتبار');
+        }
+      } catch (err: any) {
+        alert('خطا در شارژ: ' + err.message);
+      } finally {
         setIsCharging(false);
-        setShowChargeModal(false);
-        setChargeAmount('');
-        setSuccessNotice(`کیف پول شما با موفقیت ${num.toLocaleString('fa-IR')} تومان شارژ شد.`);
-      }, 1500);
+      }
     }
   };
 
@@ -42,7 +67,7 @@ export default function WalletScreen({ onBack }: WalletScreenProps) {
         >
           <ChevronRight size={20} />
         </button>
-        <h1 className="font-black text-slate-800 text-base">کیف پول من</h1>
+        <h1 className="font-black text-slate-800 text-base">کیف پول یکپارچه مدرسه</h1>
       </div>
 
       {successNotice && (
@@ -60,9 +85,9 @@ export default function WalletScreen({ onBack }: WalletScreenProps) {
 
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-indigo-100">موجودی فعلی</span>
+              <span className="text-xs font-bold text-indigo-100">موجودی در دیتابیس سامانه</span>
               <span className="text-[10px] bg-white/20 px-2.5 py-1 rounded-xl backdrop-blur-md font-bold tracking-wider">
-                صنام پی
+                کیف پول ایتا
               </span>
             </div>
             <div>
@@ -70,7 +95,7 @@ export default function WalletScreen({ onBack }: WalletScreenProps) {
                 {balance.toLocaleString('fa-IR')} <span className="text-sm font-normal opacity-80">تومان</span>
               </div>
               <p className="text-[11px] text-indigo-200 font-mono tracking-wide" dir="ltr">
-                Hojjatollah Ahang
+                {user?.full_name || 'Hojjatollah Ahang'}
               </p>
             </div>
           </div>
@@ -82,61 +107,34 @@ export default function WalletScreen({ onBack }: WalletScreenProps) {
             onClick={() => setShowChargeModal(true)}
             className="flex-1 bg-white border border-indigo-100 text-indigo-600 font-bold text-sm py-3.5 rounded-3xl shadow-sm flex items-center justify-center hover:bg-indigo-50 active:scale-98 transition-all gap-1.5"
           >
-            <Plus size={18} /> افزایش موجودی
+            <Plus size={18} /> افزایش موجودی آنلاین
           </button>
         </div>
 
         {/* Transactions List */}
         <div>
-          <h2 className="font-bold text-slate-700 text-sm mb-4">تاریخچه تراکنش‌ها</h2>
+          <h2 className="font-bold text-slate-700 text-sm mb-4">تاریخچه تراکنش‌های دیتابیس</h2>
           <div className="space-y-3">
-            {/* Incoming (Deposit / Refund) */}
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 ml-3 flex-shrink-0">
-                  <ArrowDownLeft size={20} />
+            {transactions.length === 0 ? (
+              <div className="text-center py-8 text-xs text-slate-400">تراکنشی ثبت نشده است</div>
+            ) : (
+              transactions.map((tx) => (
+                <div key={tx.id} className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center">
+                    <div className={`w-10 h-10 ${tx.type === 'income' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'} rounded-2xl flex items-center justify-center ml-3 flex-shrink-0`}>
+                      {tx.type === 'income' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">{tx.title}</h4>
+                      <p className="text-[10px] text-slate-400 mt-1">{tx.date || 'امروز'}</p>
+                    </div>
+                  </div>
+                  <span className={`${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'} font-bold text-xs`} dir="ltr">
+                    {tx.type === 'income' ? '+' : '-'} {Number(tx.amount).toLocaleString('fa-IR')} <span className="text-[10px]">تومان</span>
+                  </span>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">عودت وجه التزام</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">۱۴ شهریور ۱۴۰۵</p>
-                </div>
-              </div>
-              <span className="text-emerald-600 font-bold text-xs" dir="ltr">
-                + ۱۵۰,۰۰۰ <span className="text-[10px]">تومان</span>
-              </span>
-            </div>
-
-            {/* Outgoing (Purchase) */}
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 ml-3 flex-shrink-0">
-                  <ArrowUpRight size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">خرید دوره علوم حوزوی</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">۱۲ شهریور ۱۴۰۵</p>
-                </div>
-              </div>
-              <span className="text-rose-600 font-bold text-xs" dir="ltr">
-                - ۳۵۰,۰۰۰ <span className="text-[10px]">تومان</span>
-              </span>
-            </div>
-
-            {/* Another Incoming */}
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 ml-3 flex-shrink-0">
-                  <ArrowDownLeft size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">شارژ آنلاین از درگاه ایتا</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">۱۰ شهریور ۱۴۰۵</p>
-                </div>
-              </div>
-              <span className="text-emerald-600 font-bold text-xs" dir="ltr">
-                + ۱,۷۰۰,۰۰۰ <span className="text-[10px]">تومان</span>
-              </span>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -166,16 +164,17 @@ export default function WalletScreen({ onBack }: WalletScreenProps) {
                   onClick={() => setChargeAmount(amt)}
                   className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-[11px] font-bold text-slate-700"
                 >
-                  {(parseInt(amt) / 1000).toLocaleString('fa-IR')} هزار
+                  {(parseInt(amt, 10) / 1000).toLocaleString('fa-IR')} هزار
                 </button>
               ))}
             </div>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={handleAddFunds}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-2xl shadow-md shadow-indigo-100"
+                disabled={isCharging}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-2xl shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5"
               >
-                پرداخت و شارژ
+                {isCharging ? <Loader2 size={16} className="animate-spin" /> : 'پرداخت و شارژ'}
               </button>
               <button
                 onClick={() => setShowChargeModal(false)}
